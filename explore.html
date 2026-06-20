@@ -1,0 +1,154 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>八咫商店街 ─ 組み上げを歩く</title>
+<script type="importmap">{"imports":{
+"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+:root{--bg:#0e0f14;--card:#171922;--line:#2b2f3a;--ink:#e7e2d8;--sub:#8a90a0;--accent:#c2453b}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif}
+header{padding:16px 22px 12px;border-bottom:1px solid var(--line)}
+h1{margin:0 0 4px;font-size:18px}h1 b{color:var(--accent)}
+.lead{color:var(--sub);font-size:12.5px;margin:0}
+main{padding:16px 22px 60px;max-width:1320px;margin:0 auto}
+.grp{font-size:13px;color:#cfd3dd;margin:22px 4px 10px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card img{width:100%;height:140px;object-fit:cover;background:#101218;display:block}
+.cap{padding:9px 12px 11px;border-top:1px solid var(--line)}
+.cap .jp{font-size:14px}.cap .play{font-size:11px;color:var(--accent);margin-top:2px}
+#gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#0b0c11}
+.gbox{background:#161922;border:1px solid #2b2f3a;border-radius:16px;padding:30px;width:300px;text-align:center}
+.gt{font-size:16px;font-weight:600}.gs{color:#8a90a0;font-size:12px;margin:6px 0 16px}
+#gp{width:100%;background:#11131a;border:1px solid #2b2f3a;color:#e7e2d8;border-radius:9px;padding:10px;font-size:15px;outline:none}
+#gb{margin-top:12px;width:100%;background:#c2453b;color:#fff;border:0;border-radius:9px;padding:10px;cursor:pointer}
+#gerr{display:none;color:#e88;font-size:12px;margin-top:10px}
+#viewer{position:fixed;inset:0;z-index:40;background:#0c0d12;display:none}
+#cv{width:100%;height:100%;display:block}
+#hud{position:absolute;left:0;right:0;bottom:0;padding:12px 18px;background:linear-gradient(#0000,#000a);pointer-events:none}
+#hud .t{font-size:15px;font-weight:600}
+#hud .k{font-size:12px;color:#b8bdc8;margin-top:3px}
+#hud .k b{color:#e7e2d8;background:#222634;border:1px solid #39405200;border-radius:5px;padding:1px 6px;margin:0 1px}
+.btn{position:absolute;top:14px;border:1px solid var(--line);background:#161922cc;color:#e7e2d8;border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px)}
+#exit{right:14px}#enter{right:120px;background:#c2453bcc;border-color:#c2453b}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a90a0;font-size:14px}
+</style></head>
+<body>
+<div id="gate"><div class="gbox"><div class="gt">八咫商店街 ─ 組み上げを歩く</div>
+<div class="gs">閲覧パスワードを入力してください</div>
+<input id="gp" type="password" placeholder="パスワード" autocomplete="off">
+<button id="gb">入る</button><div id="gerr">パスワードが違います</div></div></div>
+
+<div id="app" style="display:none">
+<header><h1>八咫商店街 ─ <b>組み上げを歩く</b></h1>
+<p class="lead">ブロック・店舗・神社をクリックすると<b>大画面で表示</b>、<b>中を歩けます</b>（マウスで見回し／スクロールでズーム／WASDで移動）。</p></header>
+<main id="main"></main>
+</div>
+
+<div id="viewer">
+<canvas id="cv"></canvas>
+<button id="enter" class="btn">🚶 通りに入る</button>
+<button id="exit" class="btn">✕ 閉じる</button>
+<div id="load">読み込み中…</div>
+<div id="hud"><div class="t" id="vt"></div>
+<div class="k"><b>ドラッグ</b>見回し　<b>スクロール</b>ズーム　<b>W A S D</b>移動　<b>Q E</b>上下　<b>Shift</b>速く</div></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const ITEMS = [{"k": "block_nigiwai", "jp": "賑わい通り ブロック", "c": "通りブロック"}, {"k": "block_sabire", "jp": "寂れ通り ブロック(ホラー)", "c": "通りブロック"}, {"k": "jinja_inari", "jp": "稲荷神社", "c": "神社"}, {"k": "jinja_chinju", "jp": "鎮守の社", "c": "神社"}, {"k": "jinja_hokora", "jp": "祠", "c": "神社"}, {"k": "shop_izakaya", "jp": "居酒屋", "c": "店舗"}, {"k": "shop_yaoya", "jp": "八百屋", "c": "店舗"}, {"k": "shop_sakanaya", "jp": "魚屋", "c": "店舗"}, {"k": "shop_yakkyoku", "jp": "薬局", "c": "店舗"}, {"k": "shop_sento", "jp": "銭湯", "c": "店舗"}, {"k": "shop_kissa", "jp": "喫茶店", "c": "店舗"}, {"k": "shop_ramen", "jp": "ラーメン屋", "c": "店舗"}, {"k": "shop_haikyo", "jp": "廃店", "c": "店舗"}, {"k": "shop_honya", "jp": "本屋", "c": "店舗"}, {"k": "shop_hanaya", "jp": "花屋", "c": "店舗"}, {"k": "shop_sushi", "jp": "寿司屋", "c": "店舗"}, {"k": "shop_sobaya", "jp": "蕎麦屋", "c": "店舗"}, {"k": "shop_wagashi", "jp": "和菓子屋", "c": "店舗"}, {"k": "shop_tokoya", "jp": "床屋", "c": "店舗"}, {"k": "arcade_unit", "jp": "アーケード標準ベイ", "c": "アーケード"}, {"k": "arcade_unit_lit", "jp": "アーケード提灯ベイ", "c": "アーケード"}, {"k": "arcade_gate", "jp": "アーケード入口ゲート", "c": "アーケード"}], PW = "VR2026";
+const CATS = ["通りブロック","神社","店舗","アーケード"];
+
+// ---- ゲート ----
+const gate=document.getElementById('gate'),app=document.getElementById('app'),gp=document.getElementById('gp'),gerr=document.getElementById('gerr');
+function unlock(){ if(gp.value===PW){ try{sessionStorage.setItem('eo','1')}catch(e){} gate.style.display='none'; app.style.display=''; } else { gerr.style.display='block'; gp.value=''; gp.focus(); } }
+document.getElementById('gb').onclick=unlock; gp.addEventListener('keydown',e=>{if(e.key==='Enter')unlock();});
+try{ if(sessionStorage.getItem('eo')==='1'){ gate.style.display='none'; app.style.display=''; } }catch(e){}
+gp.focus();
+
+// ---- ギャラリー ----
+const main=document.getElementById('main');
+for(const cat of CATS){
+  const items=ITEMS.filter(i=>i.c===cat); if(!items.length) continue;
+  const h=document.createElement('div'); h.className='grp'; h.textContent=cat; main.appendChild(h);
+  const g=document.createElement('div'); g.className='grid'; main.appendChild(g);
+  for(const it of items){
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML='<img loading="lazy" src="thumb_'+it.k+'.png" alt=""><div class="cap"><div class="jp">'+it.jp+'</div><div class="play">▶ 大きく表示して中に入る</div></div>';
+    c.onclick=()=>open3d(it); g.appendChild(c);
+  }
+}
+
+// ---- Three.js ビューア ----
+const viewer=document.getElementById('viewer'),loadEl=document.getElementById('load');
+let renderer,scene,camera,controls,current,modelSize=10,box=null;
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;}); addEventListener('keyup',e=>{keys[e.code]=false;});
+
+function initThree(){
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  scene=new THREE.Scene(); scene.background=new THREE.Color(0x0c0d12);
+  scene.fog=new THREE.Fog(0x0c0d12, 50, 260);
+  camera=new THREE.PerspectiveCamera(62, 1, 0.05, 4000);
+  scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x2a2620, 0.9));
+  const d1=new THREE.DirectionalLight(0xfff0e0,1.25); d1.position.set(30,60,25); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x90b0ff,0.45); d2.position.set(-30,30,-25); scene.add(d2);
+  controls=new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping=true; controls.dampingFactor=0.08; controls.screenSpacePanning=true;
+  onResize(); addEventListener('resize',onResize);
+  renderer.setAnimationLoop(loop);
+}
+function onResize(){ if(!renderer)return; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+const loader=new GLTFLoader();
+function open3d(it){
+  viewer.style.display='block'; document.getElementById('vt').textContent=it.jp;
+  loadEl.style.display='flex';
+  if(!renderer) initThree();
+  if(current){ scene.remove(current); current=null; }
+  loader.load('prop_'+it.k+'.glb',(g)=>{
+    current=g.scene; scene.add(current);
+    box=new THREE.Box3().setFromObject(current);
+    const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+    modelSize=Math.max(size.x,size.y,size.z);
+    camera.near=modelSize/800; camera.far=modelSize*12; camera.updateProjectionMatrix();
+    controls.target.copy(ctr);
+    camera.position.set(ctr.x+modelSize*0.55, ctr.y+modelSize*0.5, ctr.z+modelSize*0.95);
+    controls.update(); loadEl.style.display='none';
+  },undefined,(e)=>{ loadEl.textContent='読み込み失敗（ネット接続を確認）'; });
+}
+function enterStreet(){
+  if(!box)return;
+  const ctr=box.getCenter(new THREE.Vector3()), size=box.getSize(new THREE.Vector3());
+  const longX=size.x>=size.z; const eye=box.min.y+size.y*0.32+1.0;
+  if(longX){ camera.position.set(box.min.x+size.x*0.06, eye, ctr.z); controls.target.set(ctr.x, eye, ctr.z); }
+  else { camera.position.set(ctr.x, eye, box.min.z+size.z*0.06); controls.target.set(ctr.x, eye, ctr.z+0.1); }
+  controls.update();
+}
+document.getElementById('enter').onclick=enterStreet;
+document.getElementById('exit').onclick=()=>{ viewer.style.display='none'; if(current){scene.remove(current);current=null;} };
+
+const tmpF=new THREE.Vector3(),tmpR=new THREE.Vector3(),mv=new THREE.Vector3();
+function loop(){
+  if(viewer.style.display==='block' && current){
+    const sp=(keys.ShiftLeft||keys.ShiftRight?2.4:1)*Math.max(0.06, modelSize/55);
+    camera.getWorldDirection(tmpF); tmpF.y=0; tmpF.normalize();
+    tmpR.crossVectors(tmpF, camera.up).normalize();
+    mv.set(0,0,0);
+    if(keys.KeyW||keys.ArrowUp) mv.add(tmpF);
+    if(keys.KeyS||keys.ArrowDown) mv.addScaledVector(tmpF,-1);
+    if(keys.KeyD||keys.ArrowRight) mv.add(tmpR);
+    if(keys.KeyA||keys.ArrowLeft) mv.addScaledVector(tmpR,-1);
+    if(keys.KeyE||keys.Space) mv.y+=1;
+    if(keys.KeyQ) mv.y-=1;
+    if(mv.lengthSq()>0){ mv.normalize().multiplyScalar(sp); camera.position.add(mv); controls.target.add(mv); }
+    controls.update(); renderer.render(scene,camera);
+  }
+}
+</script>
+</body></html>
