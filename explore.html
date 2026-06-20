@@ -113,7 +113,7 @@ function open3d(it){
   loadEl.style.display='flex';
   if(!renderer) initThree();
   if(current){ scene.remove(current); current=null; }
-  loader.load('prop_'+it.k+'.glb?v=4',(g)=>{
+  loader.load('prop_'+it.k+'.glb?v=5',(g)=>{
     current=g.scene; scene.add(current);
     box=new THREE.Box3().setFromObject(current);
     const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
