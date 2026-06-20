@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>八咫商店街 ─ 3Dアセット ビューア（351種）</title>
+<title>八咫商店街 ─ 3Dアセット ビューア（354種）</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
   :root{--bg:#0e0f14;--card:#171922;--line:#2b2f3a;--ink:#e7e2d8;--sub:#8a90a0;--accent:#c2453b}
@@ -52,7 +52,7 @@
 <div id="app" style="display:none">
 <header>
   <h1>八咫商店街 ─ 神隠しの夜　<b>3Dアセット ビューア</b></h1>
-  <p class="lead">手続き生成（Blender）の和ホラー商店街プロップ <b>351種</b>。表示されたモデルは<b>自動でぐるぐる回転</b>、<b>ドラッグでも回せます</b>（スクロールでズーム）。</p>
+  <p class="lead">手続き生成（Blender）の和ホラー商店街プロップ <b>354種</b>。表示されたモデルは<b>自動でぐるぐる回転</b>、<b>ドラッグでも回せます</b>（スクロールでズーム）。</p>
   <div class="tools">
     <input id="q" placeholder="検索：提灯 / jizo / 人形 …">
     <span class="hint" id="cnt"></span>
@@ -2225,6 +2225,27 @@
         <figcaption><span class="jp">時計ユニット</span><span class="key">arcade_clock</span></figcaption>
       </figure>
     </div>
+    <h2 class="sec">batch21 ― 商店街の一角の神社（組み立て）<span class="cnt">3</span></h2>
+    <div class="grid">
+      <figure class="card" data-name="jinja_inari 稲荷神社">
+        <model-viewer class="mv" poster="thumb_jinja_inari.png" camera-controls auto-rotate auto-rotate-delay="0"
+          rotation-per-second="36deg" shadow-intensity="0.6" exposure="0.95" interaction-prompt="none"
+          loading="eager" reveal="auto" data-glb="prop_jinja_inari.glb" alt="稲荷神社"></model-viewer>
+        <figcaption><span class="jp">稲荷神社</span><span class="key">jinja_inari</span></figcaption>
+      </figure>
+      <figure class="card" data-name="jinja_chinju 鎮守の社">
+        <model-viewer class="mv" poster="thumb_jinja_chinju.png" camera-controls auto-rotate auto-rotate-delay="0"
+          rotation-per-second="36deg" shadow-intensity="0.6" exposure="0.95" interaction-prompt="none"
+          loading="eager" reveal="auto" data-glb="prop_jinja_chinju.glb" alt="鎮守の社"></model-viewer>
+        <figcaption><span class="jp">鎮守の社</span><span class="key">jinja_chinju</span></figcaption>
+      </figure>
+      <figure class="card" data-name="jinja_hokora 祠">
+        <model-viewer class="mv" poster="thumb_jinja_hokora.png" camera-controls auto-rotate auto-rotate-delay="0"
+          rotation-per-second="36deg" shadow-intensity="0.6" exposure="0.95" interaction-prompt="none"
+          loading="eager" reveal="auto" data-glb="prop_jinja_hokora.glb" alt="祠"></model-viewer>
+        <figcaption><span class="jp">祠</span><span class="key">jinja_hokora</span></figcaption>
+      </figure>
+    </div>
   <div class="empty" id="empty">該当なし</div>
 </main>
 <footer>八咫商店街 -神隠しの夜-　MASTAR ／ 生成アセット一覧。GLBは各カードに埋め込み済み（このファイル単体で3D表示）。</footer>
@@ -2249,7 +2270,7 @@
     cards.forEach(c=>{const hit=!t||c.dataset.name.toLowerCase().includes(t);c.style.display=hit?'':'none';if(hit)n++;});
     secs.forEach(s=>{let el=s.nextElementSibling,vis=[...el.children].some(c=>c.style.display!=='none');
       s.style.display=vis?'':'none';el.style.display=vis?'':'none';});
-    empty.style.display=n?'none':'block'; cnt.textContent=n+' / 351 表示';
+    empty.style.display=n?'none':'block'; cnt.textContent=n+' / 354 表示';
   }
   q.addEventListener('input',apply); apply();
 
