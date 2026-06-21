@@ -41,7 +41,8 @@ td.h{color:#e0897f;font-weight:700}
 .heroveil{position:absolute;inset:0;background:linear-gradient(90deg,#0c0b0dE6 0%,#0c0b0dAA 45%,#0c0b0d55 100%)}
 .pill{display:inline-block;background:#2a1f22;color:#e0897f;border:1px solid #5a3331;border-radius:999px;padding:5px 14px;font-size:14px;margin:0 6px 6px 0}
 .foot{position:absolute;left:46px;bottom:22px;color:#6b655c;font-size:14px;letter-spacing:.08em}
-@media print{@page{size:1280px 720px;margin:0}body{gap:0;padding:0;background:#151318}.slide{box-shadow:none;border:0;page-break-after:always}}
+.frame{flex:none;overflow:hidden}
+@media print{@page{size:1280px 720px;margin:0}body{gap:0;padding:0;background:#151318}.frame{width:1280px!important;height:720px!important;overflow:visible}.frame>.slide{transform:none!important}.slide{box-shadow:none;border:0;page-break-after:always}}
 </style>
 </head>
 <body>
@@ -213,5 +214,23 @@ td.h{color:#e0897f;font-weight:700}
   <div class="sn">10 / 10</div>
 </section>
 
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  slides.forEach(function(sl){
+    var f=document.createElement('div'); f.className='frame';
+    sl.parentNode.insertBefore(f,sl); f.appendChild(sl);
+    sl.style.transformOrigin='top left';
+  });
+  function fit(){
+    var s=Math.min(1,(window.innerWidth-24)/1280);
+    document.querySelectorAll('.frame').forEach(function(f){
+      f.style.width=Math.round(1280*s)+'px'; f.style.height=Math.round(720*s)+'px';
+      f.firstElementChild.style.transform='scale('+s+')';
+    });
+  }
+  fit(); addEventListener('resize',fit);
+})();
+</script>
 </body>
 </html>
