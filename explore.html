@@ -86,7 +86,7 @@ for(const cat of CATS){
 
 // ---- Three.js ビューア ----
 const viewer=document.getElementById('viewer'),loadEl=document.getElementById('load');
-let renderer,scene,camera,controls,current,modelSize=10,box=null;
+let renderer,scene,camera,controls,current,modelSize=10,box=null,motes=null;
 const keys={};
 addEventListener('keydown',e=>{keys[e.code]=true;}); addEventListener('keyup',e=>{keys[e.code]=false;});
 
@@ -94,13 +94,18 @@ function initThree(){
   renderer=new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.toneMappingExposure=1.3;
-  scene=new THREE.Scene(); scene.background=new THREE.Color(0x161922);
-  scene.fog=new THREE.Fog(0x161922, 120, 520);
+  scene=new THREE.Scene(); scene.background=new THREE.Color(0x0d131a);
+  scene.fog=new THREE.Fog(0x0d131a, 55, 360);                       // 裏世界の寒色の霧
   camera=new THREE.PerspectiveCamera(62, 1, 0.05, 6000);
-  scene.add(new THREE.HemisphereLight(0xd6e4ff, 0x3a3530, 1.7));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const d1=new THREE.DirectionalLight(0xfff0e0,2.5); d1.position.set(40,90,35); scene.add(d1);
-  const d2=new THREE.DirectionalLight(0xaccaff,1.2); d2.position.set(-40,45,-30); scene.add(d2);
+  scene.add(new THREE.HemisphereLight(0x8fb0d8, 0x241f2a, 1.3));     // 色を抑えた寒色光
+  scene.add(new THREE.AmbientLight(0xbcc8e0, 0.5));
+  const d1=new THREE.DirectionalLight(0xe8f0ff,2.0); d1.position.set(40,90,35); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x6f86c8,1.1); d2.position.set(-40,45,-30); scene.add(d2);
+  const N=600, pa=new Float32Array(N*3), spd=new Float32Array(N);   // 裏世界の浮遊霊気（胞子）
+  for(let i=0;i<N;i++){ pa[i*3]=Math.random()-0.5; pa[i*3+1]=Math.random(); pa[i*3+2]=Math.random()-0.5; spd[i]=0.3+Math.random()*0.9; }
+  const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pa,3));
+  motes=new THREE.Points(pg, new THREE.PointsMaterial({color:0xbfe0ff,size:0.5,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending}));
+  motes.userData.spd=spd; motes.visible=false; scene.add(motes);
   controls=new OrbitControls(camera, renderer.domElement);
   controls.enableDamping=true; controls.dampingFactor=0.08; controls.screenSpacePanning=true;
   onResize(); addEventListener('resize',onResize);
@@ -121,6 +126,7 @@ function open3d(it){
     camera.near=modelSize/800; camera.far=modelSize*16; camera.updateProjectionMatrix();
     controls.target.copy(ctr);
     camera.position.set(ctr.x+modelSize*0.55, ctr.y+modelSize*0.5, ctr.z+modelSize*0.95);
+    if(motes){ motes.position.set(box.min.x, box.min.y, box.min.z); motes.scale.set(size.x, size.y*1.4+8, size.z); motes.material.size=Math.max(0.4, modelSize*0.012); motes.visible=true; }
     controls.update(); loadEl.style.display='none';
   },(xhr)=>{ if(xhr&&xhr.total){ loadEl.textContent='読み込み中… '+Math.round(xhr.loaded/xhr.total*100)+'%'; } },
    (e)=>{ loadEl.textContent='読み込み失敗: '+((e&&e.message)?e.message:e); });
@@ -139,6 +145,7 @@ document.getElementById('exit').onclick=()=>{ viewer.style.display='none'; if(cu
 const tmpF=new THREE.Vector3(),tmpR=new THREE.Vector3(),mv=new THREE.Vector3();
 function loop(){
   if(viewer.style.display==='block' && current){
+    if(motes&&motes.visible){ const p=motes.geometry.attributes.position, s=motes.userData.spd; for(let i=0;i<s.length;i++){ let y=p.array[i*3+1]+s[i]*0.0016; if(y>1)y-=1; p.array[i*3+1]=y; } p.needsUpdate=true; }
     const sp=(keys.ShiftLeft||keys.ShiftRight?2.4:1)*Math.max(0.06, modelSize/55);
     camera.getWorldDirection(tmpF); tmpF.y=0; tmpF.normalize();
     tmpR.crossVectors(tmpF, camera.up).normalize();
