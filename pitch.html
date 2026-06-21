@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>八咫商店街 -神隠しの夜- 企画書</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0c0b0d;color:#ece7dd;font-family:'Zen Kaku Gothic New',sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:22px;padding:26px 12px 60px}
+.slide{position:relative;width:1280px;height:720px;background:#151318;overflow:hidden;border:1px solid #2a2630;box-shadow:0 18px 50px #0008}
+.serif{font-family:'Shippori Mincho B1',serif}
+.bar{position:absolute;left:0;top:0;width:8px;height:100%;background:#c0453b}
+.sn{position:absolute;right:30px;bottom:22px;color:#5d5750;font-size:14px;letter-spacing:.12em}
+.tag{position:absolute;left:46px;top:40px;color:#c0453b;font-size:16px;letter-spacing:.34em;font-weight:700}
+h1{font-size:84px;font-weight:800;letter-spacing:.04em;line-height:1.12}
+h2{font-size:44px;font-weight:700;letter-spacing:.03em}
+.sub{color:#b9b2a6;font-size:21px;line-height:1.75}
+.muted{color:#8f897e}
+.accent{color:#e0897f}
+.pad{position:absolute;left:46px;right:46px;top:118px}
+.lead{font-size:25px;line-height:1.85;color:#d8d1c4}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.card{background:#1d1a21;border:1px solid #2f2a35;border-radius:14px;padding:22px 24px}
+.card .k{color:#e0897f;font-size:21px;font-weight:700;margin-bottom:6px}
+.card .v{color:#c2bbb0;font-size:17px;line-height:1.7}
+.step{display:flex;align-items:center;gap:18px;margin:14px 0}
+.num{flex:0 0 52px;height:52px;border-radius:50%;background:#c0453b;color:#fff;font-weight:800;font-size:24px;display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif}
+.step .t{font-size:24px;color:#e7e1d6}.step .t b{color:#fff}
+table{width:100%;border-collapse:collapse;font-size:18px}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid #2c2832}
+th{color:#9a948a;font-weight:500;font-size:15px;letter-spacing:.06em}
+td.h{color:#e0897f;font-weight:700}
+.imgwrap{position:absolute;border:1px solid #2f2a35;border-radius:12px;overflow:hidden;background:#0c0b0d}
+.imgwrap img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.85) brightness(.96)}
+.cap{position:absolute;font-size:13px;color:#7d776d;letter-spacing:.04em}
+.hero{position:absolute;inset:0}
+.hero img{width:100%;height:100%;object-fit:cover;filter:saturate(.7) brightness(.5)}
+.heroveil{position:absolute;inset:0;background:linear-gradient(90deg,#0c0b0dE6 0%,#0c0b0dAA 45%,#0c0b0d55 100%)}
+.pill{display:inline-block;background:#2a1f22;color:#e0897f;border:1px solid #5a3331;border-radius:999px;padding:5px 14px;font-size:14px;margin:0 6px 6px 0}
+.foot{position:absolute;left:46px;bottom:22px;color:#6b655c;font-size:14px;letter-spacing:.08em}
+@media print{@page{size:1280px 720px;margin:0}body{gap:0;padding:0;background:#151318}.slide{box-shadow:none;border:0;page-break-after:always}}
+</style>
+</head>
+<body>
+
+<!-- 1. TITLE -->
+<section class="slide">
+  <div class="hero"><img src="thumb_level2_eye.png" alt=""></div><div class="heroveil"></div>
+  <div class="bar"></div>
+  <div style="position:absolute;left:56px;top:212px;right:60px">
+    <div class="tag" style="position:static;margin-bottom:18px">ROBLOX 協力和ホラー 企画書</div>
+    <h1 class="serif">八咫商店街<br><span style="font-size:52px;color:#e0897f">- 神隠しの夜 -</span></h1>
+    <p class="sub" style="margin-top:26px;font-size:24px;max-width:880px">夜の商店街に神隠しされた数人が、街じゅうの<b style="color:#fff">お札を剥がして結界を破り</b>、化け物「<b style="color:#fff">八尺様（ハッシャク）</b>」から<b style="color:#fff">逃げ帰る</b>。</p>
+  </div>
+  <div class="foot">こやっキー ／ 八咫商店街 -神隠しの夜- 企画書 ・ 2026</div>
+</section>
+
+<!-- 2. 30秒で分かる -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">30秒で分かる</div>
+  <div class="pad">
+    <h2 class="serif">集めて・隠れて・逃げ帰る</h2>
+    <div style="margin-top:30px">
+      <div class="step"><div class="num">1</div><div class="t">仲間と夜の商店街に<b>閉じ込められる</b></div></div>
+      <div class="step"><div class="num">2</div><div class="t">街に光る<b>お札</b>。みんなで<b>剥がして集める</b></div></div>
+      <div class="step"><div class="num">3</div><div class="t">徘徊する<b>八尺様</b>に<b>見つかると追われる</b></div></div>
+      <div class="step"><div class="num">4</div><div class="t">店に逃げ込む／物陰に隠れる／抜け道で巻く</div></div>
+      <div class="step"><div class="num">5</div><div class="t">お札を全部剥がすと<b>出口が開く → 走って脱出</b></div></div>
+    </div>
+    <p class="muted" style="font-size:19px;margin-top:14px">＝ 説明書なしで分かる、直感的なコアループ。</p>
+  </div>
+  <div class="sn">01 / 08</div>
+</section>
+
+<!-- 3. 世界観 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">世界観</div>
+  <div class="pad" style="width:610px">
+    <h2 class="serif">神隠しの裏世界</h2>
+    <p class="lead" style="margin-top:22px">閉じ込められるのは、現実の商店街の<b class="accent">“裏側”＝並行世界</b>。色が抜け、寒色の霧が立ち、霊気が漂う——八尺様が支配する世界。</p>
+    <p class="lead" style="margin-top:16px"><b class="accent">お札</b>は結界の封印。剥がせば表世界へ帰れる。だが同じお札は<b style="color:#fff">八尺様も縛っていた</b>——<b class="accent">剥がすほど奴が凶暴化する。</b></p>
+    <div style="margin-top:22px">
+      <span class="pill">昭和の商店街</span><span class="pill">神隠し</span><span class="pill">狐火・彼岸花</span><span class="pill">霧と霊気</span><span class="pill">気配の恐怖</span>
+    </div>
+  </div>
+  <div class="imgwrap" style="right:46px;top:118px;width:560px;height:484px"><img src="thumb_akichi.png" alt=""></div>
+  <div class="cap" style="right:60px;top:612px">裏世界の空き地（実機レンダー）</div>
+  <div class="sn">02 / 08</div>
+</section>
+
+<!-- 4. 面白さ -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">コアの面白さ</div>
+  <div class="pad">
+    <h2 class="serif">なぜ面白いか</h2>
+    <div class="grid2" style="margin-top:28px">
+      <div class="card"><div class="k">読み合い</div><div class="v">音を出すと見つかる。「今、走っていいか／シャッターを開けていいか」の緊張。</div></div>
+      <div class="card"><div class="k">協力</div><div class="v">誰かが囮で引きつけ、他がお札を剥がす。役割が自然に生まれる。</div></div>
+      <div class="card"><div class="k">じわっと怖い</div><div class="v">八尺様は常に見えない。<b class="accent">「来てるか分からない時間」</b>が一番こわい。</div></div>
+      <div class="card"><div class="k">毎回ちがう</div><div class="v">迷路・お札・ゴール・敵の位置・装飾が<b class="accent">入るたびにランダム</b>。覚えゲーにならない。</div></div>
+    </div>
+  </div>
+  <div class="sn">03 / 08</div>
+</section>
+
+<!-- 5. 勝ち筋 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">勝ち筋・差別化</div>
+  <div class="pad">
+    <h2 class="serif">既存ホラー鬼ごっことの違い</h2>
+    <table style="margin-top:24px">
+      <tr><th>要素</th><th>よくあるホラー鬼ごっこ</th><th>本作</th></tr>
+      <tr><td class="muted">舞台</td><td class="muted">洋館・施設・学校</td><td class="h">日本の商店街（裏世界）＝新鮮</td></tr>
+      <tr><td class="muted">隠れ</td><td class="muted">ロッカー（借り物）</td><td class="h">店のシャッター・物陰＝設定にあって当然</td></tr>
+      <tr><td class="muted">進行</td><td class="muted">発電機・鍵</td><td class="h">お札を剥がす＝結界を解く（物語と一体）</td></tr>
+      <tr><td class="muted">リプレイ</td><td class="muted">固定マップ</td><td class="h">毎回ランダム生成（必ずクリア可能）</td></tr>
+    </table>
+    <p class="lead" style="margin-top:24px"><b class="accent">商店街 × 和ホラー × 協力 × 毎回ちがう ＋ こやっキーIP</b> ——この組み合わせはRobloxで手薄。</p>
+  </div>
+  <div class="sn">04 / 08</div>
+</section>
+
+<!-- 6. 主要システム -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">主要システム</div>
+  <div class="pad" style="width:600px">
+    <h2 class="serif">仕組み</h2>
+    <div style="margin-top:22px">
+      <div class="card" style="margin-bottom:12px"><div class="k" style="font-size:18px">お札（進行）</div><div class="v">剥がして規定数集めると出口が開く。人数でノルマ自動調整。</div></div>
+      <div class="card" style="margin-bottom:12px"><div class="k" style="font-size:18px">シャッター（核ギミック）</div><div class="v">店を開けて中へ。裏口あり＝抜け道／無し＝隠れ部屋。開ける＝音＋時間のリスク。</div></div>
+      <div class="card" style="margin-bottom:12px"><div class="k" style="font-size:18px">隠れ＝商店街の物陰</div><div class="v">店・自販機の陰・電話ボックス・賽銭箱の裏・ブルーシートの下…</div></div>
+      <div class="card"><div class="k" style="font-size:18px">八尺様AI ／ 毎回ランダム</div><div class="v">視界＋音で検知。お札を剥がすほど強化。迷路・ゴール・配置が毎回生成。</div></div>
+    </div>
+  </div>
+  <div class="imgwrap" style="right:46px;top:140px;width:572px;height:440px"><img src="thumb_level_yata2.png" alt=""></div>
+  <div class="cap" style="right:70px;top:590px">レベル全体図（実機レンダー・毎回ランダム生成）</div>
+  <div class="sn">05 / 08</div>
+</section>
+
+<!-- 7. こやっキー要素 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">こやっキー要素（独自IP）</div>
+  <div class="pad">
+    <h2 class="serif">こやっキーの店と御朱印</h2>
+    <div class="grid2" style="margin-top:28px">
+      <div class="card"><div class="k">こやっキーの店</div><div class="v">商店街の<b style="color:#fff">目立つランドマーク店</b>（迷子防止の目印も兼ねる）。店内に小ネタ。<b class="accent">御朱印を授かる場所。</b></div></div>
+      <div class="card"><div class="k">こやっキー御朱印 ＝ 切り札</div><div class="v"><b style="color:#fff">数秒だけ八尺様に見つからない・掴まれない「加護」</b>（逃げ切る用）。5〜7秒・1回使い切り・参拝中は無防備（リスク報酬）。</div></div>
+    </div>
+    <p class="lead" style="margin-top:24px">世界観の対比 ── <b class="accent">お札＝剥がす（封印を破る）／御朱印＝授かる（加護）</b>。<span class="muted">※「無敵」のままだと怖さが止まるので、短く・取得にリスクで両立。</span></p>
+  </div>
+  <div class="sn">06 / 08</div>
+</section>
+
+<!-- 8. わかりやすさ -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">わかりやすさ</div>
+  <div class="pad" style="width:600px">
+    <h2 class="serif">初見の子でも30秒で</h2>
+    <p class="lead" style="margin-top:20px;font-size:22px">怖さより先に<b class="accent">「ルールの見える化」</b>。低年齢層は文字を読まない——光・色・音・アイコンで伝える。</p>
+    <div style="margin-top:18px;font-size:20px;line-height:2.1;color:#d3ccc0">
+      ・画面上に常時 <b style="color:#fff">おふだ ◯/◯</b>（目的）<br>
+      ・走る/開けると<b style="color:#fff">足元に音の輪＋八尺様の「!?」</b>（音＝危険）<br>
+      ・隠れた瞬間<b style="color:#fff">「かくれた！」＋追跡音ストップ</b>（安全）<br>
+      ・店は色だけでなく<b style="color:#fff">アイコン</b>（青=ぬけ道／赤=かくれる）<br>
+      ・出口は<b style="color:#fff">お札が揃う→光＋矢印</b>（迷わせない）
+    </div>
+  </div>
+  <div class="imgwrap" style="right:46px;top:150px;width:572px;height:420px"><img src="compare_courses.png" alt=""></div>
+  <div class="cap" style="right:70px;top:580px">毎回ちがうコース（A/B/C）</div>
+  <div class="sn">07 / 08</div>
+</section>
+
+<!-- 9. 規模・ロードマップ -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">規模・ロードマップ</div>
+  <div class="pad">
+    <h2 class="serif">作れる状態にある</h2>
+    <div class="grid3" style="margin-top:26px">
+      <div class="card"><div class="k" style="font-size:18px">プラットフォーム</div><div class="v">Roblox（PC/モバイル）。小中〜10代＋ホラー好き。協力プレイ。</div></div>
+      <div class="card"><div class="k" style="font-size:18px">アセット</div><div class="v">商店街アセット<b style="color:#fff"> 390種＋</b>を手続き生成で量産済み。</div></div>
+      <div class="card"><div class="k" style="font-size:18px">開発規模</div><div class="v">遊べるMVP <b style="color:#fff">約7〜10人日</b>／フル <b style="color:#fff">約17〜22人日</b>。</div></div>
+    </div>
+    <h2 class="serif" style="font-size:26px;margin-top:30px;color:#cfc8bc">ロードマップ</h2>
+    <p class="lead" style="margin-top:10px;font-size:20px">① 街割り確定 → ② MVP実装（シャッター＋わかりやすさ核）→ ③ AI・ランダム接続 → ④ 裏世界の演出（霧・霊気）→ ⑤ テスト・公開</p>
+    <p class="serif" style="margin-top:26px;font-size:23px;color:#e0897f">「日本の夜の商店街に神隠し。お札を剥がして結界を破り、八尺様から逃げ帰る。」</p>
+  </div>
+  <div class="foot">世界観・システム・わかりやすさ・量産アセット・工数まで設計済み。あとは作るだけ。</div>
+  <div class="sn">08 / 08</div>
+</section>
+
+</body>
+</html>
