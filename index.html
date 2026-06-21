@@ -31,25 +31,10 @@
   .empty{color:var(--sub);padding:40px;text-align:center;display:none}
   footer{color:var(--sub);font-size:11px;text-align:center;padding:24px}
 
-  #gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#0b0c11}
-  .gbox{background:#161922;border:1px solid #2b2f3a;border-radius:16px;padding:30px 32px;width:308px;text-align:center}
-  .gt{color:#e7e2d8;font-size:16px;font-weight:600;letter-spacing:.04em}
-  .gs{color:#8a90a0;font-size:12px;margin:6px 0 16px}
-  #gp{width:100%;background:#11131a;border:1px solid #2b2f3a;color:#e7e2d8;border-radius:9px;padding:10px 12px;font-size:15px;outline:none}
-  #gp:focus{border-color:#c2453b}
-  #gb{margin-top:12px;width:100%;background:#c2453b;color:#fff;border:0;border-radius:9px;padding:10px;font-size:14px;cursor:pointer}
-  .gerr{display:none;color:#e88;font-size:12px;margin-top:10px}
-
 </style></head>
 <body>
-<div id="gate"><div class="gbox">
-    <div class="gt">八咫商店街 ─ 3Dアセット</div>
-    <div class="gs">閲覧パスワードを入力してください</div>
-    <input id="gp" type="password" placeholder="パスワード" autocomplete="off">
-    <button id="gb">入る</button>
-    <div id="gerr" class="gerr">パスワードが違います</div>
-  </div></div>
-<div id="app" style="display:none">
+
+<div id="app">
 <header>
   <h1>八咫商店街 ─ 神隠しの夜　<b>3Dアセット ビューア</b></h1>
   <p class="lead">手続き生成（Blender）の和ホラー商店街プロップ <b>406種</b>。表示されたモデルは<b>自動でぐるぐる回転</b>、<b>ドラッグでも回せます</b>（スクロールでズーム）。</p>
@@ -2616,15 +2601,6 @@
     empty.style.display=n?'none':'block'; cnt.textContent=n+' / 406 表示';
   }
   q.addEventListener('input',apply); apply();
-
-  (function(){
-    const PW="VR2026", gate=document.getElementById('gate'), app=document.getElementById('app'),
-          gp=document.getElementById('gp'), gb=document.getElementById('gb'), gerr=document.getElementById('gerr');
-    function unlock(){ if(gp.value===PW){ try{sessionStorage.setItem('yo','1')}catch(e){} gate.style.display='none'; app.style.display=''; } else { gerr.style.display='block'; gp.value=''; gp.focus(); } }
-    gb.addEventListener('click',unlock); gp.addEventListener('keydown',e=>{ if(e.key==='Enter')unlock(); });
-    try{ if(sessionStorage.getItem('yo')==='1'){ gate.style.display='none'; app.style.display=''; } }catch(e){}
-    gp.focus();
-  })();
 
 </script>
 </body></html>
