@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>八咫商店街 ─ 3Dアセット ビューア（404種）</title>
+<title>八咫商店街 ─ 3Dアセット ビューア（405種）</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
   :root{--bg:#0e0f14;--card:#171922;--line:#2b2f3a;--ink:#e7e2d8;--sub:#8a90a0;--accent:#c2453b}
@@ -52,7 +52,7 @@
 <div id="app" style="display:none">
 <header>
   <h1>八咫商店街 ─ 神隠しの夜　<b>3Dアセット ビューア</b></h1>
-  <p class="lead">手続き生成（Blender）の和ホラー商店街プロップ <b>404種</b>。表示されたモデルは<b>自動でぐるぐる回転</b>、<b>ドラッグでも回せます</b>（スクロールでズーム）。</p>
+  <p class="lead">手続き生成（Blender）の和ホラー商店街プロップ <b>405種</b>。表示されたモデルは<b>自動でぐるぐる回転</b>、<b>ドラッグでも回せます</b>（スクロールでズーム）。</p>
   <p class="lead" style="margin-top:7px"><a href="explore.html" style="color:var(--accent);text-decoration:none;font-weight:600">🚶 組み上げ（通りブロック／店舗／神社）を大画面で表示して中を歩く →</a></p>
   <div class="tools">
     <input id="q" placeholder="検索：提灯 / jizo / 人形 …">
@@ -2571,6 +2571,15 @@
         <figcaption><span class="jp">床屋(閉店)</span><span class="key">shop_tokoya_closed</span></figcaption>
       </figure>
     </div>
+    <h2 class="sec">batch30 ― ゲーム本編レベル（LevelLayout実寸＋シャッター設計プレビュー）<span class="cnt">1</span></h2>
+    <div class="grid">
+      <figure class="card" data-name="level_yata 八咫商店街 ゲームレベル">
+        <model-viewer class="mv" poster="thumb_level_yata.png" camera-controls auto-rotate auto-rotate-delay="0"
+          rotation-per-second="36deg" shadow-intensity="0.6" exposure="0.95" interaction-prompt="none"
+          loading="eager" reveal="auto" data-glb="prop_level_yata.glb" alt="八咫商店街 ゲームレベル"></model-viewer>
+        <figcaption><span class="jp">八咫商店街 ゲームレベル</span><span class="key">level_yata</span></figcaption>
+      </figure>
+    </div>
   <div class="empty" id="empty">該当なし</div>
 </main>
 <footer>八咫商店街 -神隠しの夜-　MASTAR ／ 生成アセット一覧。GLBは各カードに埋め込み済み（このファイル単体で3D表示）。</footer>
@@ -2595,7 +2604,7 @@
     cards.forEach(c=>{const hit=!t||c.dataset.name.toLowerCase().includes(t);c.style.display=hit?'':'none';if(hit)n++;});
     secs.forEach(s=>{let el=s.nextElementSibling,vis=[...el.children].some(c=>c.style.display!=='none');
       s.style.display=vis?'':'none';el.style.display=vis?'':'none';});
-    empty.style.display=n?'none':'block'; cnt.textContent=n+' / 404 表示';
+    empty.style.display=n?'none':'block'; cnt.textContent=n+' / 405 表示';
   }
   q.addEventListener('input',apply); apply();
 
