@@ -22,6 +22,8 @@
   #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;background:#07070a;color:#8f897e;font-size:15px;letter-spacing:.1em}
   #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:30;background:#07070a;color:#e0897f;font-size:15px;text-align:center;padding:30px}
   .hint{position:fixed;right:16px;bottom:16px;z-index:10;font-size:12px;color:#6b655c;letter-spacing:.05em}
+  body.embed #hud,body.embed #panel,body.embed .hint{display:none}
+  body.embed #loading{font-size:13px;letter-spacing:.16em}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&display=swap" rel="stylesheet">
 </head>
@@ -101,6 +103,8 @@ ground.rotation.x = -Math.PI/2; scene.add(ground);
 
 let mixer=null, action=null, playing=true, spin=false;
 const clock = new THREE.Clock();
+const EMBED = new URLSearchParams(location.search).has('embed');
+if(EMBED){ document.body.classList.add('embed'); spin=true; }
 
 const loader = new GLTFLoader();
 loader.load('hasshaku_anim.glb?v=1', (gltf)=>{
