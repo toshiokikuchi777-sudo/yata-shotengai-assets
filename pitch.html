@@ -47,6 +47,29 @@ td.h{color:#e0897f;font-weight:700}
 </style>
 </head>
 <body>
+<div id="pwgate" style="position:fixed;inset:0;z-index:99999;background:#0c0b0d;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;color:#ece7dd">
+  <div style="font-family:'Shippori Mincho B1',serif;font-size:22px;letter-spacing:.1em;margin-bottom:6px">八咫商店街 -神隠しの夜-</div>
+  <div style="color:#8f897e;font-size:13px;margin-bottom:18px">関係者限定 ・ パスワードを入力してください</div>
+  <input id="pwin" type="password" placeholder="password" autocomplete="off" style="background:#15131a;border:1px solid #3a3340;color:#ece7dd;border-radius:8px;padding:10px 14px;font-size:16px;width:220px;text-align:center;outline:none">
+  <button id="pwbtn" style="margin-top:12px;background:#c0453b;color:#fff;border:0;border-radius:8px;padding:9px 22px;font-size:15px;cursor:pointer">入る</button>
+  <div id="pwerr" style="color:#e0897f;font-size:13px;margin-top:10px;height:16px"></div>
+</div>
+<script>
+(function(){
+  var KEY='yata-gate-ok', g=document.getElementById('pwgate');
+  var inFrame=false; try{inFrame=window.top!==window.self;}catch(e){inFrame=true;}
+  if(inFrame || sessionStorage.getItem(KEY)==='1'){ if(g) g.remove(); return; }
+  function unlock(){
+    var v=(document.getElementById('pwin').value||'').trim().toLowerCase();
+    if(v==='vr2026'){ try{sessionStorage.setItem(KEY,'1');}catch(e){} g.remove(); }
+    else { document.getElementById('pwerr').textContent='パスワードが違います'; }
+  }
+  document.getElementById('pwbtn').addEventListener('click',unlock);
+  document.getElementById('pwin').addEventListener('keydown',function(e){ if(e.key==='Enter') unlock(); });
+  document.getElementById('pwin').focus();
+})();
+</script>
+
 
 <!-- 1. TITLE -->
 <section class="slide">
@@ -131,7 +154,7 @@ td.h{color:#e0897f;font-weight:700}
 <!-- 3. 世界観 -->
 <section class="slide">
   <div class="bar"></div><div class="tag">世界観</div>
-  <div class="pad" style="width:610px">
+  <div class="pad">
     <h2 class="serif">神隠しの裏世界</h2>
     <p class="lead" style="margin-top:22px">閉じ込められるのは、現実の商店街の<b class="accent">“裏側”＝並行世界</b>。色が抜け、寒色の霧が立ち、霊気が漂う——八尺様が支配する世界。</p>
     <p class="lead" style="margin-top:16px">裏世界では<b class="accent">お札の色に体が染まる</b>。同じ色に紛れると<b style="color:#fff">結界に溶けて八尺様に見えない</b>。<b class="accent">色を外せば、浮いて見つかる。</b></p>
@@ -139,8 +162,6 @@ td.h{color:#e0897f;font-weight:700}
       <span class="pill">昭和の商店街</span><span class="pill">神隠し</span><span class="pill">狐火・彼岸花</span><span class="pill">霧と霊気</span><span class="pill">気配の恐怖</span>
     </div>
   </div>
-  <div class="imgwrap" style="right:46px;top:118px;width:560px;height:484px"><img src="thumb_akichi.png" alt=""></div>
-  <div class="cap" style="right:60px;top:612px">裏世界の空き地（実機レンダー）</div>
   <div class="sn">03 / 12</div>
 </section>
 
@@ -255,7 +276,7 @@ td.h{color:#e0897f;font-weight:700}
 <!-- 8. わかりやすさ -->
 <section class="slide">
   <div class="bar"></div><div class="tag">わかりやすさ</div>
-  <div class="pad" style="width:600px">
+  <div class="pad">
     <h2 class="serif">初見の子でも30秒で</h2>
     <p class="lead" style="margin-top:20px;font-size:22px">怖さより先に<b class="accent">「ルールの見える化」</b>。低年齢層は文字を読まない——光・色・音・アイコンで伝える。</p>
     <div style="margin-top:18px;font-size:20px;line-height:2.1;color:#d3ccc0">
@@ -266,8 +287,6 @@ td.h{color:#e0897f;font-weight:700}
       ・ゴールは<b style="color:#fff">鳥居（祠）へ光＋矢印</b>（迷わせない）
     </div>
   </div>
-  <div class="imgwrap" style="right:46px;top:150px;width:572px;height:420px"><img src="compare_courses.png" alt=""></div>
-  <div class="cap" style="right:70px;top:580px">毎回ちがうコース（A/B/C）</div>
   <div class="sn">11 / 12</div>
 </section>
 

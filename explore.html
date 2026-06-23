@@ -36,6 +36,29 @@ main{padding:16px 22px 60px;max-width:1320px;margin:0 auto}
 #load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a90a0;font-size:14px}
 </style></head>
 <body>
+<div id="pwgate" style="position:fixed;inset:0;z-index:99999;background:#0c0b0d;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;color:#ece7dd">
+  <div style="font-family:'Shippori Mincho B1',serif;font-size:22px;letter-spacing:.1em;margin-bottom:6px">八咫商店街 -神隠しの夜-</div>
+  <div style="color:#8f897e;font-size:13px;margin-bottom:18px">関係者限定 ・ パスワードを入力してください</div>
+  <input id="pwin" type="password" placeholder="password" autocomplete="off" style="background:#15131a;border:1px solid #3a3340;color:#ece7dd;border-radius:8px;padding:10px 14px;font-size:16px;width:220px;text-align:center;outline:none">
+  <button id="pwbtn" style="margin-top:12px;background:#c0453b;color:#fff;border:0;border-radius:8px;padding:9px 22px;font-size:15px;cursor:pointer">入る</button>
+  <div id="pwerr" style="color:#e0897f;font-size:13px;margin-top:10px;height:16px"></div>
+</div>
+<script>
+(function(){
+  var KEY='yata-gate-ok', g=document.getElementById('pwgate');
+  var inFrame=false; try{inFrame=window.top!==window.self;}catch(e){inFrame=true;}
+  if(inFrame || sessionStorage.getItem(KEY)==='1'){ if(g) g.remove(); return; }
+  function unlock(){
+    var v=(document.getElementById('pwin').value||'').trim().toLowerCase();
+    if(v==='vr2026'){ try{sessionStorage.setItem(KEY,'1');}catch(e){} g.remove(); }
+    else { document.getElementById('pwerr').textContent='パスワードが違います'; }
+  }
+  document.getElementById('pwbtn').addEventListener('click',unlock);
+  document.getElementById('pwin').addEventListener('keydown',function(e){ if(e.key==='Enter') unlock(); });
+  document.getElementById('pwin').focus();
+})();
+</script>
+
 <div id="gate" style="display:none"><div class="gbox"><div class="gt">八咫商店街 ─ 組み上げを歩く</div>
 <div class="gs">閲覧パスワードを入力してください</div>
 <input id="gp" type="password" placeholder="パスワード" autocomplete="off">
