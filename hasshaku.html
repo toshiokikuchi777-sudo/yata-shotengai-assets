@@ -61,9 +61,10 @@
   <div class="sub">八咫商店街 -神隠しの夜-／Mixamoモーション確認用<br>ドラッグで回転・ホイールで拡大縮小</div>
 </div>
 <div id="panel">
-  <div class="row">
+  <div class="row" style="flex-wrap:wrap">
     <button id="play" class="on">⏸ 一時停止</button>
     <button id="spin">⟳ 自動回転 OFF</button>
+    <button id="accel">⏩ 加速</button>
   </div>
   <div class="row">
     <label>速度</label>
@@ -88,8 +89,12 @@ const app = document.getElementById('app');
 const params = new URLSearchParams(location.search);
 const EMBED = params.has('embed');
 const CLEAR = params.has('clear');   // 背景透過（商店街の上に重ねる用）
+// UIの表示切替は描画より先に確定（WebGLが遅い/失敗してもパネルがはみ出さない）
+if(EMBED) document.body.classList.add('embed');
 if(CLEAR){ document.documentElement.classList.add('clear'); document.body.classList.add('clear'); }
-const renderer = new THREE.WebGLRenderer({antialias:true, alpha:CLEAR});
+let renderer;
+try { renderer = new THREE.WebGLRenderer({antialias:true, alpha:CLEAR}); }
+catch(e){ const l=document.getElementById('loading'); if(l) l.textContent='この環境では3D表示に対応していません'; throw e; }
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -134,8 +139,10 @@ if(!CLEAR){
 
 let mixer=null, action=null, playing=true, spin=false;
 const clock = new THREE.Clock();
-if(EMBED){ document.body.classList.add('embed'); spin=true; }
+if(EMBED) spin=true;   // 埋め込みは既定で自動回転（UIクラスは冒頭で適用済み）
 if(params.get('spin')==='0') spin=false;   // タイトル合成では回さず歩かせる
+let accel=false;
+function applySpeed(){ if(mixer) mixer.timeScale = accel ? 2.6 : +speed.value; }
 
 const loader = new GLTFLoader();
 loader.load('hasshaku_anim.glb?v=2', (gltf)=>{
@@ -159,7 +166,7 @@ loader.load('hasshaku_anim.glb?v=2', (gltf)=>{
     mixer = new THREE.AnimationMixer(model);
     action = mixer.clipAction(gltf.animations[0]);
     action.play();
-    mixer.timeScale = +speed.value;
+    applySpeed();
   }
   document.getElementById('loading').style.display='none';
 }, undefined, (e)=>{
@@ -170,9 +177,11 @@ loader.load('hasshaku_anim.glb?v=2', (gltf)=>{
 
 // UI
 const speed=document.getElementById('speed'), speedv=document.getElementById('speedv');
-speed.oninput=()=>{ speedv.textContent=(+speed.value).toFixed(1)+'x'; if(mixer) mixer.timeScale=playing?+speed.value:0; };
+speed.oninput=()=>{ speedv.textContent=(+speed.value).toFixed(1)+'x'; accel=false; const ab=document.getElementById('accel'); ab.textContent='⏩ 加速'; ab.classList.remove('on'); applySpeed(); };
 const playBtn=document.getElementById('play');
 playBtn.onclick=()=>{ playing=!playing; playBtn.textContent=playing?'⏸ 一時停止':'▶ 再生'; playBtn.classList.toggle('on',playing); };
+const accelBtn=document.getElementById('accel');
+accelBtn.onclick=()=>{ accel=!accel; accelBtn.textContent=accel?'⏩ 加速中':'⏩ 加速'; accelBtn.classList.toggle('on',accel); if(!playing){ playing=true; playBtn.textContent='⏸ 一時停止'; playBtn.classList.add('on'); } applySpeed(); };
 const spinBtn=document.getElementById('spin');
 spinBtn.onclick=()=>{ spin=!spin; spinBtn.textContent=spin?'⟳ 自動回転 ON':'⟳ 自動回転 OFF'; spinBtn.classList.toggle('on',spin); };
 
