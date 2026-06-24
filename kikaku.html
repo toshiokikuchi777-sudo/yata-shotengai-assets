@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>八咫商店街 -神隠しに迷い込んだ商店街- 企画書 Ver.1.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0c0b0d;color:#ece7dd;font-family:'Zen Kaku Gothic New',sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:22px;padding:26px 12px 60px}
+.slide{position:relative;width:1280px;height:720px;background:#151318;overflow:hidden;border:1px solid #2a2630;box-shadow:0 18px 50px #0008}
+.serif{font-family:'Shippori Mincho B1',serif}
+.bar{position:absolute;left:0;top:0;width:8px;height:100%;background:#c0453b}
+.sn{position:absolute;right:30px;bottom:22px;color:#5d5750;font-size:14px;letter-spacing:.12em}
+.tag{position:absolute;left:46px;top:40px;color:#c0453b;font-size:16px;letter-spacing:.34em;font-weight:700}
+h1{font-size:84px;font-weight:800;letter-spacing:.04em;line-height:1.12}
+h2{font-size:44px;font-weight:700;letter-spacing:.03em}
+.sub{color:#b9b2a6;font-size:21px;line-height:1.75}
+.muted{color:#8f897e}
+.accent{color:#e0897f}
+.pad{position:absolute;left:46px;right:46px;top:118px}
+.lead{font-size:25px;line-height:1.9;color:#d8d1c4}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.card{background:#1d1a21;border:1px solid #2f2a35;border-radius:14px;padding:22px 24px}
+.card .k{color:#e0897f;font-size:21px;font-weight:700;margin-bottom:6px}
+.card .v{color:#c2bbb0;font-size:17px;line-height:1.7}
+.step{display:flex;align-items:center;gap:16px;margin:11px 0}
+.num{flex:0 0 46px;height:46px;border-radius:50%;background:#c0453b;color:#fff;font-weight:800;font-size:21px;display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif}
+.step .t{font-size:22px;color:#e7e1d6}.step .t b{color:#fff}
+.imgwrap{position:absolute;border:1px solid #2f2a35;border-radius:12px;overflow:hidden;background:#0c0b0d}
+.imgwrap img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.9) brightness(.98)}
+.cap{position:absolute;font-size:13px;color:#7d776d;letter-spacing:.04em}
+.hero{position:absolute;inset:0}
+.hero img{width:100%;height:100%;object-fit:cover;filter:saturate(.7) brightness(.5)}
+.heroveil{position:absolute;inset:0;background:linear-gradient(90deg,#0c0b0dE6 0%,#0c0b0dAA 45%,#0c0b0d55 100%)}
+.veilall{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,#0c0b0d55 0%,#0c0b0dE0 78%)}
+.pill{display:inline-block;background:#2a1f22;color:#e0897f;border:1px solid #5a3331;border-radius:999px;padding:5px 14px;font-size:14px;margin:0 6px 6px 0}
+.foot{position:absolute;left:46px;bottom:22px;color:#6b655c;font-size:14px;letter-spacing:.08em}
+.frame{flex:none;overflow:hidden}
+.bigq{font-family:'Shippori Mincho B1',serif;font-size:33px;color:#efe9de;line-height:1.7;letter-spacing:.02em}
+.nr{font-family:'Shippori Mincho B1',serif;font-size:27px;line-height:2.0;color:#e2dccf}
+.coldot{display:inline-block;width:44px;height:44px;border-radius:50%;margin:0 12px 0 0;vertical-align:middle;box-shadow:0 0 16px currentColor}
+@media print{.titlefig{display:none!important}.titlefigposter{display:block!important}}
+@media print{@page{size:1280px 720px;margin:0}body{gap:0;padding:0;background:#151318}.frame{width:1280px!important;height:720px!important;overflow:visible}.frame>.slide{transform:none!important}.slide{box-shadow:none;border:0;page-break-after:always}}
+</style>
+</head>
+<body>
+<div id="pwgate" style="position:fixed;inset:0;z-index:99999;background:#0c0b0d;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;color:#ece7dd">
+  <div style="font-family:'Shippori Mincho B1',serif;font-size:22px;letter-spacing:.1em;margin-bottom:6px">八咫商店街 -神隠しに迷い込んだ商店街-</div>
+  <div style="color:#8f897e;font-size:13px;margin-bottom:18px">関係者限定 ・ パスワードを入力してください</div>
+  <input id="pwin" type="password" placeholder="password" autocomplete="off" style="background:#15131a;border:1px solid #3a3340;color:#ece7dd;border-radius:8px;padding:10px 14px;font-size:16px;width:220px;text-align:center;outline:none">
+  <button id="pwbtn" style="margin-top:12px;background:#c0453b;color:#fff;border:0;border-radius:8px;padding:9px 22px;font-size:15px;cursor:pointer">入る</button>
+  <div id="pwerr" style="color:#e0897f;font-size:13px;margin-top:10px;height:16px"></div>
+</div>
+<script>
+(function(){
+  var KEY='yata-gate-ok', g=document.getElementById('pwgate');
+  var inFrame=false; try{inFrame=window.top!==window.self;}catch(e){inFrame=true;}
+  if(inFrame || sessionStorage.getItem(KEY)==='1'){ if(g) g.remove(); return; }
+  function unlock(){
+    var v=(document.getElementById('pwin').value||'').trim().toLowerCase();
+    if(v==='vr2026'){ try{sessionStorage.setItem(KEY,'1');}catch(e){} g.remove(); }
+    else { document.getElementById('pwerr').textContent='パスワードが違います'; }
+  }
+  document.getElementById('pwbtn').addEventListener('click',unlock);
+  document.getElementById('pwin').addEventListener('keydown',function(e){ if(e.key==='Enter') unlock(); });
+  document.getElementById('pwin').focus();
+})();
+</script>
+
+<!-- TITLE -->
+<section class="slide">
+  <div class="hero"><img src="thumb_level2_eye.png" alt=""></div><div class="heroveil"></div>
+  <div class="titlefig" style="position:absolute;right:36px;top:0;width:560px;height:720px;z-index:2;pointer-events:none">
+    <iframe src="hasshaku.html?embed=1&clear=1&spin=0&fit=0.5" title="歩く八尺様" allowtransparency="true" style="width:100%;height:100%;border:0;background:transparent"></iframe>
+  </div>
+  <img class="titlefigposter" src="hasshaku.png" alt="八尺様" style="display:none;position:absolute;right:60px;bottom:30px;height:600px;object-fit:contain;z-index:2">
+  <div class="bar"></div>
+  <div style="position:absolute;left:56px;top:196px;right:60px;z-index:3">
+    <div class="tag" style="position:static;margin-bottom:18px">ROBLOX 協力型 和風ホラー 企画書 Ver.1.0</div>
+    <h1 class="serif" style="text-shadow:0 3px 14px #000">八咫商店街<br><span style="font-size:46px;color:#e0897f">- 神隠しに迷い込んだ商店街 -</span></h1>
+    <p class="sub" style="margin-top:24px;font-size:23px;max-width:610px;text-shadow:0 2px 8px #000">遊ぶたびに姿を変える商店街から、<b style="color:#fff">生きて脱出せよ</b>。神隠しの呪いで、<b style="color:#fff">道も店も色も出口も毎回変わる</b>。</p>
+  </div>
+  <div class="foot" style="z-index:3">コヤッキー ／ 八咫商店街 -神隠しに迷い込んだ商店街- 企画書 Ver.1.0 ・ 2026</div>
+</section>
+
+<!-- 01 コンセプト -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">コンセプト</div>
+  <div class="pad">
+    <h2 class="serif">遊ぶたびに、姿を変える</h2>
+    <p class="lead" style="margin-top:26px;max-width:1050px">普通のホラーは、一度クリアすると<b class="accent">道順を覚えてしまう</b>。<br>八咫商店街では、<b style="color:#fff">商店街そのものが神隠しの呪いで姿を変える</b>ため、毎回ちがう恐怖を体験できる。</p>
+    <p class="bigq" style="margin-top:36px">「この商店街には、同じ景色が二度と存在しない。」</p>
+    <div style="margin-top:30px">
+      <span class="pill">毎回ちがう</span><span class="pill">道順を覚えられない</span><span class="pill">ローグライク</span><span class="pill">和ホラー</span><span class="pill">配信映え</span>
+    </div>
+  </div>
+  <div class="sn">01 / 14</div>
+</section>
+
+<!-- 02 プロローグ -->
+<section class="slide">
+  <div class="hero"><img src="thumb_level2_eye.png" alt=""></div><div class="veilall"></div>
+  <div class="bar"></div><div class="tag" style="text-shadow:0 2px 8px #000">プロローグ</div>
+  <div style="position:absolute;left:70px;right:70px;top:130px">
+    <p class="nr" style="text-shadow:0 2px 10px #000">
+    都市伝説好きの主人公は、噂の<b style="color:#fff">「八咫商店街」</b>を訪れる。<br>
+    ——「一度入ると、二度と同じ景色を見ることはない。」<br>
+    笑いながら鳥居をくぐる。しかし振り返ると、<b class="accent">入ってきた鳥居は消えていた。</b><br>
+    出口がない。携帯も繋がらない。静まり返る商店街。<br>
+    そして遠くから——<span class="serif" style="color:#e0897f;font-size:30px">「ぽ・・・ぽ・・・ぽ・・・」</span><br>
+    八尺様の足音。<b style="color:#fff">神隠しが始まる。</b>
+    </p>
+  </div>
+  <div class="sn">02 / 14</div>
+</section>
+
+<!-- 03 世界観 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">世界観</div>
+  <div class="pad" style="width:760px">
+    <h2 class="serif">神隠しの異世界</h2>
+    <p class="lead" style="margin-top:24px">八咫商店街は、<b class="accent">神隠しに遭った人々の記憶から作られた異世界</b>。<br>迷い込んだ人間の<b style="color:#fff">恐怖を読み取り</b>、道・店・景色・色・出口——そのすべてを書き換えてしまう。</p>
+    <p class="lead" style="margin-top:18px">だから、<b style="color:#fff">誰一人として地図を作ることができない。</b></p>
+  </div>
+  <div class="imgwrap" style="right:46px;top:120px;width:430px;height:584px;background:#0c0b0d"><img src="hasshaku_sheet.png" alt="" style="object-fit:contain"></div>
+  <div class="sn">03 / 14</div>
+</section>
+
+<!-- 04 目的 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">プレイヤーの目的</div>
+  <div class="pad">
+    <h2 class="serif">奥の「神社」を目指せ</h2>
+    <p class="lead" style="margin-top:26px;max-width:1000px">八尺様から逃げながら、商店街の奥にある<b style="color:#fff">神社</b>を目指す。<br>たどり着けば、<b class="accent">神隠しを終わらせられるかもしれない。</b></p>
+    <p class="lead" style="margin-top:18px;color:#b9b2a6">——ただし、その道のりは<b style="color:#fff">毎回変わる。</b></p>
+  </div>
+  <div class="sn">04 / 14</div>
+</section>
+
+<!-- 05 ゲームの流れ -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">ゲームの流れ</div>
+  <div class="pad">
+    <h2 class="serif">迷い込み、隠れ、奥へ</h2>
+    <div style="margin-top:22px">
+      <div class="step"><div class="num">1</div><div class="t">商店街へ<b>迷い込む</b> → 探索する</div></div>
+      <div class="step"><div class="num">2</div><div class="t">色の<b>お札を集める</b>（今の色になる）</div></div>
+      <div class="step"><div class="num">3</div><div class="t">同じ色に紛れて<b>八尺様から隠れる</b></div></div>
+      <div class="step"><div class="num">4</div><div class="t"><b>鳥居を見つける</b> → くぐって次の商店街へ</div></div>
+      <div class="step"><div class="num">5</div><div class="t">さらに奥へ → <b>神社</b>で結界を完成 → <b>封印</b> → 脱出</div></div>
+    </div>
+    <p class="muted" style="margin-top:18px;font-size:18px">＝ クリアするたびに、まったく違う商店街が生成される。</p>
+  </div>
+  <div class="sn">05 / 14</div>
+</section>
+
+<!-- 06 毎回違う商店街（HERO） -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">毎回ちがう</div>
+  <h2 class="serif" style="position:absolute;left:46px;top:56px;font-size:34px">毎回、別の商店街が生成される</h2>
+  <div style="position:absolute;left:46px;right:46px;top:120px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+    <div><div class="imgwrap" style="position:relative;width:100%;height:430px"><img src="gen_map_a.png" style="object-fit:contain" alt=""></div><div style="text-align:center;color:#9a948a;font-size:14px;margin-top:8px">生成例 ①</div></div>
+    <div><div class="imgwrap" style="position:relative;width:100%;height:430px"><img src="gen_map_b.png" style="object-fit:contain" alt=""></div><div style="text-align:center;color:#9a948a;font-size:14px;margin-top:8px">生成例 ②</div></div>
+    <div><div class="imgwrap" style="position:relative;width:100%;height:430px"><img src="gen_map_c.png" style="object-fit:contain" alt=""></div><div style="text-align:center;color:#9a948a;font-size:14px;margin-top:8px">生成例 ③</div></div>
+  </div>
+  <p style="position:absolute;left:46px;right:46px;bottom:54px;color:#d3ccc0;font-size:19px;line-height:1.7">道路・店舗・アイテム・お札・隠れ場所・イベント・八尺様の行動——<b style="color:#fff">すべてが毎回変わる</b>。<span class="muted">（実機モジュール生成のプロト）</span></p>
+  <div class="sn">06 / 14</div>
+</section>
+
+<!-- 07 色で隠れる -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">コア：色で隠れる</div>
+  <div class="pad">
+    <h2 class="serif">色に紛れて、隠れる</h2>
+    <div style="margin-top:30px;font-size:30px">
+      <span class="coldot" style="background:#c0453b;color:#c0453b"></span>
+      <span class="coldot" style="background:#2f6fb0;color:#2f6fb0"></span>
+      <span class="coldot" style="background:#3f9d54;color:#3f9d54"></span>
+      <span class="coldot" style="background:#d8b32a;color:#d8b32a"></span>
+      <span class="coldot" style="background:#7b4ea3;color:#7b4ea3"></span>
+    </div>
+    <p class="lead" style="margin-top:28px;max-width:1050px">プレイヤーは<b style="color:#fff">いずれかの色になる</b>。同じ色の場所（赤なら 赤提灯・赤暖簾・赤看板・赤自販機…）では<b class="accent">八尺様から見つからない</b>。</p>
+    <p class="lead" style="margin-top:16px;max-width:1050px">しかし<b style="color:#fff">お札を拾うと色が変わる</b>——<b class="accent">安全だった場所が、突然 危険になる。</b></p>
+  </div>
+  <div class="sn">07 / 14</div>
+</section>
+
+<!-- 08 商店街は生きている -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">ダンジョンメーカー</div>
+  <div class="pad" style="width:600px">
+    <h2 class="serif">商店街は、生きている</h2>
+    <p class="lead" style="margin-top:24px">迷い込んだ人の<b style="color:#fff">恐怖を読み取り</b>、姿を変える。</p>
+    <div style="margin-top:16px;font-size:21px;line-height:2.0;color:#d3ccc0">
+      ・昨日あった店が、<b style="color:#fff">今日は存在しない</b><br>
+      ・一本道だった場所が、<b style="color:#fff">行き止まりになる</b><br>
+      ・出口だった鳥居が、<b class="accent">入口へ変わる</b>
+    </div>
+    <p class="lead" style="margin-top:18px">商店街そのものが、<b style="color:#fff">プレイヤーを閉じ込めようとする。</b></p>
+  </div>
+  <div class="imgwrap" style="right:46px;top:140px;width:584px;height:440px;background:#07070a"><img src="gen_town_3d.png" style="object-fit:contain" alt=""></div>
+  <div class="cap" style="right:70px;top:590px">ブロック組み立てで毎回生成される街（実機プロト）</div>
+  <div class="sn">08 / 14</div>
+</section>
+
+<!-- 09 ステージ構成 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">ステージ構成</div>
+  <div class="pad">
+    <h2 class="serif">奥へ、奥へ</h2>
+    <div style="margin-top:34px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:22px;color:#e7e1d6">
+      <span class="pill" style="font-size:18px">第一商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px">第二商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px">祭り商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px">霧商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px">廃商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px">裏商店街</span><span class="accent">→</span>
+      <span class="pill" style="font-size:18px;background:#3a1f22;border-color:#c0453b;color:#fff">神社</span>
+    </div>
+    <p class="lead" style="margin-top:34px;max-width:1050px">進むほど<b style="color:#fff">難度が上がり</b>、色数・イベント・八尺様が強化される。<br><b class="accent">各エリアも、毎回ちがう構成</b>で生成される。</p>
+  </div>
+  <div class="sn">09 / 14</div>
+</section>
+
+<!-- 10 八尺様 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">脅威</div>
+  <div class="pad" style="width:600px">
+    <h2 class="serif">八尺様（ハッシャク）</h2>
+    <p class="lead" style="margin-top:24px">ただ追いかけてくるだけではない。迷い込んだ人間を<b style="color:#fff">ゆっくりと追い詰める</b>。</p>
+    <p class="lead" style="margin-top:14px">プレイヤーは<b class="accent">色を利用しながら</b>、隠れ、逃げ、進む。進むほど速くなり、<b style="color:#fff">毎回 行動が違う</b>。声は「<b class="accent">ぽ…ぽ…</b>」。</p>
+    <p class="sub" style="margin-top:18px;font-size:15px;color:#b9b2a6"><b class="accent">▶ 動く3Dデモ：</b> toshiokikuchi777-sudo.github.io/yata-shotengai-assets/hasshaku.html</p>
+  </div>
+  <div class="imgwrap" style="right:96px;top:56px;width:300px;height:608px;background:#0c0b0d"><img src="hasshaku.png" alt="八尺様" style="object-fit:contain"></div>
+  <div class="sn">10 / 14</div>
+</section>
+
+<!-- 11 神社・封印 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">神社</div>
+  <div class="pad">
+    <h2 class="serif">神社 ── 唯一、変わらない場所</h2>
+    <p class="lead" style="margin-top:26px;max-width:1000px">毎回すべてが変わる商店街で、<b style="color:#fff">神社だけは変わらない</b>。<br>ここには<b class="accent">神隠しの真実</b>がある。</p>
+    <p class="lead" style="margin-top:18px;max-width:1000px"><b style="color:#fff">御札を集め</b>、<b style="color:#fff">結界を完成させ</b>、八尺様を<b class="accent">封印する</b>。</p>
+  </div>
+  <div class="sn">11 / 14</div>
+</section>
+
+<!-- 12 エンディング -->
+<section class="slide">
+  <div class="hero"><img src="thumb_level2_eye.png" alt=""></div><div class="veilall"></div>
+  <div class="bar"></div><div class="tag" style="text-shadow:0 2px 8px #000">エンディング</div>
+  <div style="position:absolute;left:70px;right:70px;top:150px">
+    <p class="nr" style="text-shadow:0 2px 10px #000">
+    封印は成功した。静寂が戻る。鳥居を抜ける。<br>
+    外へ出られた——そう思った瞬間、背後から<span class="serif" style="color:#e0897f;font-size:30px">「ぽ・・・」</span><br>
+    振り返ると、そこには<b class="accent">また違う商店街</b>。<br>
+    <b style="color:#fff">本当に、脱出できたのだろうか。</b>
+    </p>
+  </div>
+  <div class="sn">12 / 14</div>
+</section>
+
+<!-- 13 魅力＋配信 -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">魅力</div>
+  <div class="pad">
+    <h2 class="serif">何度でも遊べる ＋ 配信映え</h2>
+    <div class="grid2" style="margin-top:28px">
+      <div class="card"><div class="k">毎回ちがう恐怖</div><div class="v">道・店・イベント・八尺様・隠れ場所が毎回ちがう。だから<b class="accent">攻略動画だけではクリアできない</b>。一本道ではない、本物のリプレイ性。</div></div>
+      <div class="card"><div class="k">配信との相性</div><div class="v">プレイヤーごとに違う商店街が生成される。<b class="accent">配信者全員が違う体験</b>をし、視聴者も先の展開を知らない。毎回新しいリアクションが生まれる。</div></div>
+    </div>
+    <p class="lead" style="margin-top:24px;font-size:21px"><b style="color:#fff">「色変わった！」「後ろー！」「やばい！」「逃げてー！」</b><span class="muted"> ——叫べる和ホラー。</span></p>
+  </div>
+  <div class="sn">13 / 14</div>
+</section>
+
+<!-- 14 今後の展開＋メッセージ -->
+<section class="slide">
+  <div class="bar"></div><div class="tag">今後の展開</div>
+  <div class="pad">
+    <h2 class="serif">ライブサービスとして育てる</h2>
+    <p class="lead" style="margin-top:24px;max-width:1050px">アップデートで <b style="color:#fff">新しい商店街 / 新しい妖怪 / 新しいイベント / 新しいストーリー</b> を追加。<br>長く遊べる<b class="accent">ライブサービス型タイトル</b>として成長させる。</p>
+    <p class="bigq" style="margin-top:40px">「この商店街には、同じ景色が二度と存在しない。」</p>
+    <p class="sub" style="margin-top:18px;font-size:22px;color:#d8d1c4">遊ぶたびに姿を変える商店街。その奥で待つのは、八尺様か、神隠しの真実か。<br><b style="color:#fff">あなたは、無事に脱出できますか？</b></p>
+  </div>
+  <div class="foot">八咫商店街 -神隠しに迷い込んだ商店街- 企画書 Ver.1.0</div>
+  <div class="sn">14 / 14</div>
+</section>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  slides.forEach(function(sl){
+    var f=document.createElement('div'); f.className='frame';
+    sl.parentNode.insertBefore(f,sl); f.appendChild(sl);
+    sl.style.transformOrigin='top left';
+  });
+  function fit(){
+    var s=Math.min(1,(window.innerWidth-24)/1280);
+    document.querySelectorAll('.frame').forEach(function(f){
+      f.style.width=Math.round(1280*s)+'px'; f.style.height=Math.round(720*s)+'px';
+      f.firstElementChild.style.transform='scale('+s+')';
+    });
+  }
+  fit(); addEventListener('resize',fit);
+})();
+</script>
+</body>
+</html>
