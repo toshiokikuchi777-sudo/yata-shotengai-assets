@@ -113,6 +113,15 @@ function generate(seed){
       if(!mv)break; cx=mv[0];cy=mv[1];}
     spine.add(k(start.gx,start.gy));}
   for(const c of all){const kk=k(c[0],c[1]); cells[kk].tier=(spine.has(kk)||deg(opens[kk])>=3)?'street':'alley';}
+  // 抜け道：大通り↔裏道をつなぐ通り抜け（逃げ道）を数本
+  const passages=[];
+  {const cands=[];
+   for(const c of all){const kk=k(c[0],c[1]); if(cells[kk].tier!=='street')continue;
+     for(const d in D){if(opens[kk][d])continue; const nx=c[0]+D[d][0],ny=c[1]+D[d][1],nk=k(nx,ny);
+       if(cells[nk]&&cells[nk].tier==='alley')cands.push([c[0],c[1],d,nx,ny]);}}
+   for(let i=cands.length-1;i>0;i--){const j=ri(0,i);[cands[i],cands[j]]=[cands[j],cands[i]];}
+   const n=Math.min(cands.length,ri(3,5));
+   for(let i=0;i<n;i++){const p=cands[i]; opens[k(p[0],p[1])][p[2]]=1; opens[k(p[3],p[4])][OPP[p[2]]]=1; passages.push({gx:p[0],gy:p[1],side:p[2]});}}
   const deads=all.filter(c=>deg(opens[k(c[0],c[1])])===1&&!(c[0]===start.gx&&c[1]===start.gy)&&!(c[0]===goal.gx&&c[1]===goal.gy));
   let shrine=null;
   if(deads.length){let b=-1; for(const c of deads){const dd=dstart[k(c[0],c[1])]??0; if(dd>b){b=dd;shrine={gx:c[0],gy:c[1]};}}}
@@ -136,7 +145,7 @@ function generate(seed){
   for(let i=walk.length-1;i>0;i--){const j=ri(0,i);[walk[i],walk[j]]=[walk[j],walk[i]];}
   const fragments=walk.slice(0,Math.min(walk.length,5+ri(2,3)));
   let yas=start,yb=-1; for(const c of all){if(c[0]===goal.gx&&c[1]===goal.gy)continue; const dd=dstart[k(c[0],c[1])]??-1; if(dd>yb){yb=dd;yas={gx:c[0],gy:c[1]};}}
-  return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey};
+  return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey,passages};
 }
 
 // ───────── ブロック形状（MapBuilderV2と同一寸法・GRID=24） ─────────
@@ -223,6 +232,11 @@ function build(L){
   // ファサード＋色提灯／店内中央提灯
   for(const h of L.hideSpots){const c=L.cells[h.gx+','+h.gy]; if(!c)continue;
     if(c.kind!=='shrine')shopfront(c.gx,c.gy,h.side,h.colors);}
+  // 抜け道（藍色の暖簾＝逃げ道の目印・くぐって裏道へ）
+  for(const p of (L.passages||[])){const c=L.cells[p.gx+','+p.gy]; if(!c)continue;
+    const v=DV[p.side], e=HALF-WT/2, X=wx(c.gx), Z=wz(c.gy), ns=(p.side==='N'||p.side==='S');
+    if(ns)box(GRID*0.52,WH*0.24,0.6,X,WH*0.6,Z+v[2]*e,mat(0x35468a,{e:0x24368a,ei:0.45}));
+    else box(0.6,WH*0.24,GRID*0.52,X+v[0]*e,WH*0.6,Z,mat(0x35468a,{e:0x24368a,ei:0.45}));}
   // 鳥居
   const g=L.cells[L.goal.gx+','+L.goal.gy];
   if(g){const vert=g.opens.N||g.opens.S; const X=wx(g.gx),Z=wz(g.gy);
