@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>八咫商店街 ダンジョンメーカー ── 生成プレビュー</title>
+<title>八咫商店街 ダンジョンメーカー ── 迷路生成プレビュー</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;background:#0c0c12;color:#ece7dd;font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;overflow:hidden}
   #app{position:fixed;inset:0}
-  #hud{position:fixed;left:16px;top:14px;z-index:10;max-width:360px;pointer-events:none}
+  #hud{position:fixed;left:16px;top:14px;z-index:10;max-width:380px;pointer-events:none}
   #hud .ttl{font-size:18px;font-weight:700;letter-spacing:.04em;text-shadow:0 2px 8px #000}
   #hud .sub{font-size:12px;color:#9b9488;margin-top:3px;text-shadow:0 1px 4px #000}
   #stat{margin-top:8px;font-size:12px;color:#cfc7b8;line-height:1.7;background:#15131988;border:1px solid #2a2630;border-radius:8px;padding:8px 10px;display:inline-block;pointer-events:none}
@@ -46,8 +46,8 @@
 
 <div id="app"></div>
 <div id="hud">
-  <div class="ttl">ダンジョンメーカー 生成プレビュー</div>
-  <div class="sub">LevelGenV2（実装コードと同一アルゴリズム）をブラウザで実行</div>
+  <div class="ttl">ダンジョンメーカー 迷路プレビュー</div>
+  <div class="sub">LevelGenV2（実装と同一の迷路アルゴリズム）をブラウザで実行</div>
   <div id="stat"></div>
 </div>
 <div id="legend">
@@ -56,11 +56,12 @@
   <span class="d" style="background:#cecabe;color:#cecabe"></span>八尺様<br>
   <span class="d" style="background:#e8e0be;color:#e8e0be"></span>お札<br>
   <span class="d" style="background:#9bc8ff;color:#9bc8ff"></span>神社<br>
+  <span class="d" style="background:#b46cff;color:#b46cff"></span>コヤッキー店<br>
   <span style="font-size:11px;color:#8f897e">提灯＝隠れ色（赤青緑黄紫）</span>
 </div>
 <div id="panel">
-  <button id="gen" class="go">🎲 別の街を生成</button>
-  <label>seed</label><input id="seed" type="number" value="123">
+  <button id="gen" class="go">🎲 別の迷路を生成</button>
+  <label>seed</label><input id="seed" type="number" value="7">
   <button id="top">真上から</button>
   <button id="persp">斜めから</button>
 </div>
@@ -76,61 +77,62 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ───────── LevelGenV2（JS版・Luau/Pythonと同一アルゴリズム） ─────────
+// ───────── LevelGenV2（迷路：再帰的バックトラッカー＋braid。Luau/Pythonと同一） ─────────
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const COLORS=['aka','ao','midori','ki','murasaki'];
-function generate(seed, required=5){
-  const rng=mulberry32(seed>>>0); const W=9,H=15;
+const W=6,H=12,BRAID=0.4;
+function generate(seed){
+  const rng=mulberry32(seed>>>0);
   const D={N:[0,1],S:[0,-1],E:[1,0],W:[-1,0]}, OPP={N:'S',S:'N',E:'W',W:'E'};
-  const ri=(a,b)=>a+Math.floor(rng()*(b-a+1)); const k=(x,y)=>x+','+y;
-  const roads=new Set(); let x=ri(2,W-3),y=0; const start={gx:x,gy:y}; roads.add(k(x,y));
-  while(y<H-1){const r=rng(); if(r<0.58)y++; else if(r<0.80&&x<W-1)x++; else if(x>0)x--; else y++;
-    x=Math.max(0,Math.min(W-1,x)); y=Math.max(0,Math.min(H-1,y)); roads.add(k(x,y));}
-  const goal={gx:x,gy:y};
-  const pool=[...roads].map(s=>s.split(',').map(Number)); const dv=Object.values(D);
-  for(let i=0;i<ri(5,8);i++){let [bx,by]=pool[ri(0,pool.length-1)]; const [dx,dy]=dv[ri(0,3)];
-    for(let j=0;j<ri(1,4);j++){bx+=dx;by+=dy; if(bx>=0&&bx<W&&by>=0&&by<H)roads.add(k(bx,by)); else break;}}
-  const carve=[]; for(const s of roads){const [cx,cy]=s.split(',').map(Number);
-    for(const d in D){const nx=cx+D[d][0],ny=cy+D[d][1];
-      if(nx>=0&&nx<W&&ny>=0&&ny<H&&!roads.has(k(nx,ny))&&!(nx===start.gx&&ny===start.gy))carve.push([nx,ny]);}}
-  let shrine=null; if(carve.length){const s=carve[ri(0,carve.length-1)]; roads.add(k(s[0],s[1])); shrine={gx:s[0],gy:s[1]};}
-  const opensOf=(cx,cy)=>{const o={}; for(const d in D)if(roads.has(k(cx+D[d][0],cy+D[d][1])))o[d]=true; return o;};
-  const cells={}; for(const s of roads){const [cx,cy]=s.split(',').map(Number); cells[k(cx,cy)]={gx:cx,gy:cy,kind:'road',opens:opensOf(cx,cy)};}
+  const ri=(a,b)=>a+Math.floor(rng()*(b-a+1)); const k=(x,y)=>x+','+y; const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+  const opens={}, all=[];
+  for(let x=0;x<W;x++)for(let y=0;y<H;y++){opens[k(x,y)]={}; all.push([x,y]);}
+  let sx=ri(0,W-1); const start={gx:sx,gy:0};
+  const vis={[k(sx,0)]:1}, st=[[sx,0]];
+  while(st.length){const c=st[st.length-1]; const nb=[];
+    for(const d in D){const nx=c[0]+D[d][0],ny=c[1]+D[d][1]; if(inb(nx,ny)&&!vis[k(nx,ny)])nb.push([d,nx,ny]);}
+    if(nb.length){const p=nb[ri(0,nb.length-1)]; opens[k(c[0],c[1])][p[0]]=1; opens[k(p[1],p[2])][OPP[p[0]]]=1; vis[k(p[1],p[2])]=1; st.push([p[1],p[2]]);}
+    else st.pop();}
+  const deg=o=>Object.keys(o).length;
+  for(const c of all){const o=opens[k(c[0],c[1])];
+    if(deg(o)===1&&rng()<BRAID){const cand=[];
+      for(const d in D){const nx=c[0]+D[d][0],ny=c[1]+D[d][1]; if(inb(nx,ny)&&!o[d])cand.push([d,nx,ny]);}
+      if(cand.length){const p=cand[ri(0,cand.length-1)]; o[p[0]]=1; opens[k(p[1],p[2])][OPP[p[0]]]=1;}}}
+  const bfs=(ax,ay)=>{const dist={[k(ax,ay)]:0},q=[[ax,ay]]; let h=0;
+    while(h<q.length){const c=q[h++]; for(const d in opens[k(c[0],c[1])]){const nx=c[0]+D[d][0],ny=c[1]+D[d][1],nk=k(nx,ny);
+      if(opens[nk]&&dist[nk]===undefined){dist[nk]=dist[k(c[0],c[1])]+1; q.push([nx,ny]);}}} return dist;};
+  const dstart=bfs(sx,0);
+  const cells={}; for(const c of all)cells[k(c[0],c[1])]={gx:c[0],gy:c[1],kind:'road',opens:opens[k(c[0],c[1])]};
+  let goal=start,gb=-1; for(const c of all){const kk=k(c[0],c[1]); const sc=(dstart[kk]??-1)*2+(deg(opens[kk])===1?1:0); if(sc>gb){gb=sc;goal={gx:c[0],gy:c[1]};}}
   cells[k(goal.gx,goal.gy)].kind='gate';
-  if(shrine&&!(shrine.gx===goal.gx&&shrine.gy===goal.gy))cells[k(shrine.gx,shrine.gy)].kind='shrine'; else shrine=null;
-  let cand=Object.values(cells).filter(c=>c.kind==='road'&&!(c.gx===start.gx&&c.gy===start.gy));
-  for(let i=cand.length-1;i>0;i--){const j=ri(0,i);[cand[i],cand[j]]=[cand[j],cand[i]];}
-  const deg=o=>['N','S','E','W'].filter(d=>o[d]).length; cand.sort((a,b)=>deg(b.opens)-deg(a.opens));
-  let plaza=null; if(cand.length){cand[0].kind='plaza'; plaza={gx:cand[0].gx,gy:cand[0].gy};}
-  const seen={},siteList=[];
-  for(const c of Object.values(cells)){ if(c.kind!=='road')continue;
-    for(const d in D){ if(c.opens[d])continue; const nx=c.gx+D[d][0],ny=c.gy+D[d][1];
-      if(nx>=0&&nx<W&&ny>=0&&ny<H&&!roads.has(k(nx,ny))){const nk=k(nx,ny);
-        if(!seen[nk]){seen[nk]=1; siteList.push({gx:nx,gy:ny,hostKey:k(c.gx,c.gy),front:OPP[d]});}}}}
-  for(let i=siteList.length-1;i>0;i--){const j=ri(0,i);[siteList[i],siteList[j]]=[siteList[j],siteList[i]];}
-  const nShops=Math.min(siteList.length, ri(4,7));
-  const shops=[],roadShopSides={}; let koyakkey=null;
-  for(let i=0;i<nShops;i++){const st=siteList[i]; const kind=i===0?'koyakkey':'shop'; if(i===0)koyakkey={gx:st.gx,gy:st.gy};
-    shops.push({gx:st.gx,gy:st.gy,kind,front:st.front,color:COLORS[ri(0,4)]});
-    (roadShopSides[st.hostKey]=roadShopSides[st.hostKey]||{})[OPP[st.front]]=true;}
-  const hideSpots=[];
-  for(const c of Object.values(cells)){ if(c.kind==='shrine')continue; const ss=roadShopSides[k(c.gx,c.gy)];
-    for(const d of ['N','S','E','W'])if(!c.opens[d]&&!(ss&&ss[d]))hideSpots.push({gx:c.gx,gy:c.gy,side:d,color:COLORS[ri(0,4)]});}
-  for(const s of shops)hideSpots.push({gx:s.gx,gy:s.gy,side:s.front,color:s.color});
-  let walk=Object.values(cells).filter(c=>!(c.gx===start.gx&&c.gy===start.gy)).map(c=>({gx:c.gx,gy:c.gy}));
+  const deads=all.filter(c=>deg(opens[k(c[0],c[1])])===1&&!(c[0]===start.gx&&c[1]===start.gy)&&!(c[0]===goal.gx&&c[1]===goal.gy));
+  let shrine=null;
+  if(deads.length){let b=-1; for(const c of deads){const dd=dstart[k(c[0],c[1])]??0; if(dd>b){b=dd;shrine={gx:c[0],gy:c[1]};}}}
+  else{let bd=99; for(const c of all){if((c[0]===start.gx&&c[1]===start.gy)||(c[0]===goal.gx&&c[1]===goal.gy))continue; const dg=deg(opens[k(c[0],c[1])]); if(dg<bd){bd=dg;shrine={gx:c[0],gy:c[1]};}}}
+  if(shrine)cells[k(shrine.gx,shrine.gy)].kind='shrine';
+  let roadc=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&!(c[0]===start.gx&&c[1]===start.gy));
+  for(let i=roadc.length-1;i>0;i--){const j=ri(0,i);[roadc[i],roadc[j]]=[roadc[j],roadc[i]];}
+  roadc.sort((a,b)=>deg(opens[k(b[0],b[1])])-deg(opens[k(a[0],a[1])]));
+  let plaza=null; if(roadc.length){plaza={gx:roadc[0][0],gy:roadc[0][1]}; cells[k(plaza.gx,plaza.gy)].kind='plaza';}
+  let avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&(dstart[k(c[0],c[1])]??0)>=2);
+  for(let i=avail.length-1;i>0;i--){const j=ri(0,i);[avail[i],avail[j]]=[avail[j],avail[i]];}
+  const nshop=Math.min(avail.length,ri(5,8)); let koyakkey=null;
+  for(let i=0;i<nshop;i++){const c=avail[i]; const cc=cells[k(c[0],c[1])]; cc.kind=i===0?'koyakkey':'shop'; cc.color=COLORS[ri(0,4)]; if(i===0)koyakkey={gx:c[0],gy:c[1]};}
+  const hide=[];
+  for(const c of all){const cc=cells[k(c[0],c[1])];
+    if(cc.kind!=='shrine')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,color:COLORS[ri(0,4)]});
+    if(cc.kind==='shop'||cc.kind==='koyakkey')hide.push({gx:c[0],gy:c[1],side:'C',color:cc.color});}
+  let walk=all.filter(c=>!(c[0]===start.gx&&c[1]===start.gy)).map(c=>({gx:c[0],gy:c[1]}));
   for(let i=walk.length-1;i>0;i--){const j=ri(0,i);[walk[i],walk[j]]=[walk[j],walk[i]];}
-  const fragments=walk.slice(0,Math.min(walk.length, required+ri(2,3)));
-  const dist={}; dist[k(start.gx,start.gy)]=0; const q=[[start.gx,start.gy]]; let head=0;
-  while(head<q.length){const [cx,cy]=q[head++]; for(const d in D){const nx=cx+D[d][0],ny=cy+D[d][1],nk=k(nx,ny);
-    if(roads.has(nk)&&dist[nk]===undefined){dist[nk]=dist[k(cx,cy)]+1; q.push([nx,ny]);}}}
-  let yas=start,best=-1; for(const s of roads){const [cx,cy]=s.split(',').map(Number); const dd=dist[k(cx,cy)]??-1; if(dd>best){best=dd;yas={gx:cx,gy:cy};}}
-  return {seed,W,H,cells,shops,hideSpots,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey};
+  const fragments=walk.slice(0,Math.min(walk.length,5+ri(2,3)));
+  let yas=start,yb=-1; for(const c of all){if(c[0]===goal.gx&&c[1]===goal.gy)continue; const dd=dstart[k(c[0],c[1])]??-1; if(dd>yb){yb=dd;yas={gx:c[0],gy:c[1]};}}
+  return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey};
 }
 
-// ───────── ブロック形状（MapBuilderV2と同一寸法） ─────────
+// ───────── ブロック形状（MapBuilderV2と同一寸法・GRID=24） ─────────
 const GRID=24,HALF=12,WH=14,WT=1.4,FT=0.6;
-const C={ road:0x302f38, wood:0x3a2a20, wood2:0x4a3628, sign:0xcec4aa, torii:0x962c26,
-  leaf:0x284e30, trunk:0x30241a, stone:0x60625e, plaza:0x46464c, fuda:0xe8e0be, yasaki:0xcecabe, shopK:0x3c3240 };
+const C={ road:0x302f38, wood:0x3a2a20, sign:0xcec4aa, torii:0x962c26, leaf:0x284e30, trunk:0x30241a,
+  stone:0x60625e, plaza:0x46464c, fuda:0xe8e0be, yasaki:0xcecabe, shopK:0x3c3240 };
 const CRGB={ aka:0xc8382c, ao:0x2f6fb0, midori:0x3f9d54, ki:0xd8b32a, murasaki:0x7b4ea3 };
 const DV={N:[0,0,1],S:[0,0,-1],E:[1,0,0],W:[-1,0,0]};
 
@@ -139,24 +141,22 @@ const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace; app.appendChild(renderer.domElement);
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0c0c12); scene.fog=new THREE.FogExp2(0x0c0c12,0.0016);
-const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.5,2000);
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.5,3000);
 const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true;
 scene.add(new THREE.HemisphereLight(0xbcc4d6,0x2a2a32,1.45));
-const dir=new THREE.DirectionalLight(0xfff4e6,1.7); dir.position.set(80,140,60); scene.add(dir);
+const dir=new THREE.DirectionalLight(0xfff4e6,1.7); dir.position.set(80,160,60); scene.add(dir);
 scene.add(new THREE.AmbientLight(0x404048,0.5));
 
 let town=new THREE.Group(); scene.add(town);
-const mat=(c,opts={})=>new THREE.MeshStandardMaterial({color:c,roughness:opts.r??0.9,metalness:0,emissive:opts.e??0x000000,emissiveIntensity:opts.ei??1});
+const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??0.9,metalness:0,emissive:o.e??0x000000,emissiveIntensity:o.ei??1});
 function box(w,h,d,x,y,z,m){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); me.position.set(x,y,z); town.add(me); return me;}
 function sph(r,x,y,z,m){const me=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m); me.position.set(x,y,z); town.add(me); return me;}
 
 function build(L){
   scene.remove(town); town.traverse(o=>{if(o.geometry)o.geometry.dispose();}); town=new THREE.Group(); scene.add(town);
-  const W=L.W,H=L.H;
-  const wx=(gx)=>(gx-(W-1)/2)*GRID, wz=(gy)=>(gy-(H-1)/2)*GRID;
-  const matRoad=mat(C.road,{r:1}), matWood=mat(C.wood), matWood2=mat(C.wood2), matStone=mat(C.stone),
-        matSign=mat(C.sign,{r:.6}), matTorii=mat(C.torii), matPlaza=mat(C.plaza,{r:1}),
-        matLeaf=mat(C.leaf), matTrunk=mat(C.trunk);
+  const wx=g=>(g-(L.W-1)/2)*GRID, wz=g=>(g-(L.H-1)/2)*GRID;
+  const mRoad=mat(C.road,{r:1}), mWood=mat(C.wood), mStone=mat(C.stone), mSign=mat(C.sign,{r:.6}),
+        mTorii=mat(C.torii), mPlaza=mat(C.plaza,{r:1}), mLeaf=mat(C.leaf), mTrunk=mat(C.trunk), mShopK=mat(C.shopK,{r:1});
   function floor(gx,gy,m){box(GRID,FT,GRID,wx(gx),-FT/2,wz(gy),m);}
   function wall(gx,gy,d,m){const e=HALF-WT/2;
     if(d==='N'||d==='S')box(GRID,WH,WT,wx(gx),WH/2,wz(gy)+(d==='N'?e:-e),m);
@@ -165,62 +165,54 @@ function build(L){
     sph(1.2,wx(gx)+v[0]*(HALF-3),WH*0.5,wz(gy)+v[2]*(HALF-3),mat(rgb,{e:rgb,ei:0.95,r:0.4}));}
   // 床＋特殊
   for(const key in L.cells){const c=L.cells[key];
-    if(c.kind==='plaza'){floor(c.gx,c.gy,matPlaza); box(1.8,8,1.8,wx(c.gx),4,wz(c.gy),matTrunk); sph(5.5,wx(c.gx),10,wz(c.gy),matLeaf);}
-    else if(c.kind==='shrine'){floor(c.gx,c.gy,matStone);
-      for(const d of ['N','S','E','W'])if(!c.opens[d])wall(c.gx,c.gy,d,matWood);
+    if(c.kind==='plaza'){floor(c.gx,c.gy,mPlaza); box(1.8,8,1.8,wx(c.gx),4,wz(c.gy),mTrunk); sph(5.5,wx(c.gx),10,wz(c.gy),mLeaf);}
+    else if(c.kind==='shrine'){floor(c.gx,c.gy,mStone);
+      for(const d of ['N','S','E','W'])if(!c.opens[d])wall(c.gx,c.gy,d,mWood);
       sph(1.6,wx(c.gx),3.5,wz(c.gy),mat(0x6fa0d8,{e:0x4a78c8,ei:1,r:0.4}));}
-    else floor(c.gx,c.gy,matRoad);
+    else if(c.kind==='shop'||c.kind==='koyakkey'){const isK=c.kind==='koyakkey'; floor(c.gx,c.gy,isK?mShopK:mWood);
+      if(isK)box(GRID*0.6,2,GRID*0.6,wx(c.gx),WH+1.2,wz(c.gy),mat(0x8c52b4,{e:0x8c52b4,ei:0.7}));}
+    else floor(c.gx,c.gy,mRoad);
   }
-  // ファサード＋色提灯
-  for(const h of L.hideSpots){const c=L.cells[h.gx+','+h.gy];
-    if(c&&(c.kind==='road'||c.kind==='gate'||c.kind==='plaza')){wall(c.gx,c.gy,h.side,matWood); lantern(c.gx,c.gy,h.side,h.color);}}
+  // ファサード＋色提灯／店内中央提灯
+  for(const h of L.hideSpots){const c=L.cells[h.gx+','+h.gy]; if(!c)continue;
+    if(h.side==='C'){const rgb=CRGB[h.color]??0xcccccc; sph(1.3,wx(c.gx),WH*0.5,wz(c.gy),mat(rgb,{e:rgb,ei:0.95,r:0.4}));}
+    else if(c.kind!=='shrine'){wall(c.gx,c.gy,h.side,mWood); lantern(c.gx,c.gy,h.side,h.color);}}
   // 鳥居
   const g=L.cells[L.goal.gx+','+L.goal.gy];
   if(g){const vert=g.opens.N||g.opens.S; const X=wx(g.gx),Z=wz(g.gy);
-    function post(ox,oz){box(1.4,17,1.4,X+ox,8.5,Z+oz,matTorii);}
-    if(vert){post(-8.5,0);post(8.5,0);box(22,1.6,1.6,X,17,Z,matTorii);box(19,1.2,1.2,X,15,Z,matTorii);}
-    else{post(0,-8.5);post(0,8.5);box(1.6,1.6,22,X,17,Z,matTorii);box(1.2,1.2,19,X,15,Z,matTorii);}
-    const pad=box(GRID-1,0.3,GRID-1,X,0.25,Z,mat(0x7a2a2a,{e:0x5a1a1a,ei:0.8})); }
-  // 店
-  for(const s of L.shops){const isK=s.kind==='koyakkey'; floor(s.gx,s.gy,mat(isK?C.shopK:C.wood,{r:1}));
-    for(const d of ['N','S','E','W'])if(d!==s.front)wall(s.gx,s.gy,d,isK?mat(0x50405c):matWood2);
-    const e=HALF-0.7;
-    if(s.front==='N'||s.front==='S')box(GRID,3.5,WT,wx(s.gx),WH-2,wz(s.gy)+(s.front==='N'?e:-e),matSign);
-    else box(WT,3.5,GRID,wx(s.gx)+(s.front==='E'?e:-e),WH-2,wz(s.gy),matSign);
-    const rgb=CRGB[s.color]; sph(1.3,wx(s.gx),WH*0.5,wz(s.gy),mat(rgb,{e:rgb,ei:0.95,r:0.4}));
-    if(isK)sph(2.2,wx(s.gx),WH+1.5,wz(s.gy),mat(0xb46cff,{e:0xb46cff,ei:0.8}));
-  }
+    function post(ox,oz){box(1.4,17,1.4,X+ox,8.5,Z+oz,mTorii);}
+    if(vert){post(-8.5,0);post(8.5,0);box(22,1.6,1.6,X,17,Z,mTorii);box(19,1.2,1.2,X,15,Z,mTorii);}
+    else{post(0,-8.5);post(0,8.5);box(1.6,1.6,22,X,17,Z,mTorii);box(1.2,1.2,19,X,15,Z,mTorii);}
+    box(GRID-1,0.3,GRID-1,X,0.25,Z,mat(0x7a2a2a,{e:0x5a1a1a,ei:0.8}));}
   // 入口
   box(GRID*0.5,0.6,GRID*0.5,wx(L.start.gx),0.3,wz(L.start.gy),mat(0x4e8050,{e:0x2e6030,ei:0.7}));
-  // 八尺様（全高≈8.5stud）
+  // 八尺様
   box(2.2,8.5,2.2,wx(L.yasaki.gx),4.25,wz(L.yasaki.gy),mat(C.yasaki,{r:0.7}));
   // お札
   for(const f of L.fragments)box(1.6,2.6,0.22,wx(f.gx),4,wz(f.gy),mat(C.fuda,{e:0xb8a860,ei:0.6}));
 
-  // カメラを街にフィット
-  const cx=0,cz=0, span=Math.max(W,H)*GRID;
-  controls.target.set(cx,0,cz);
-  if(!build._inited){camera.position.set(cx+span*0.5,span*0.8,cz+span*0.9); build._inited=true;}
-  controls.minDistance=10; controls.maxDistance=span*2.5; controls.update();
+  controls.target.set(0,0,0);
+  if(!build._inited){const s=L.H*GRID; camera.position.set(s*0.42,s*0.72,s*0.85); build._inited=true;}
+  controls.minDistance=10; controls.maxDistance=L.H*GRID*2.6; controls.update();
 
-  let nc=0; for(const _ in L.cells)nc++;
+  let nc=0,road=0; for(const key in L.cells){nc++; if(L.cells[key].kind==='road')road++;}
   document.getElementById('stat').innerHTML=
-    `seed <b>${L.seed}</b>／道路 ${nc}・店 ${L.shops.length}・隠れ色 ${L.hideSpots.length}・お札 ${L.fragments.length}<br>`+
+    `seed <b>${L.seed}</b>／迷路 ${L.W}×${L.H}＝${nc}セル・隠れ色 ${L.hideSpots.length}・お札 ${L.fragments.length}<br>`+
     `入口(${L.start.gx},${L.start.gy}) → 鳥居(${L.goal.gx},${L.goal.gy})　必ず連結`;
 }
 
-function topView(){const s=15*GRID; camera.position.set(0.001,s*1.35,0.001); controls.target.set(0,0,0); controls.update();}
-function perspView(){const s=15*GRID; camera.position.set(s*0.45,s*0.7,s*0.85); controls.target.set(0,0,0); controls.update();}
+function topView(){const s=H*GRID; camera.position.set(0.001,s*1.25,0.001); controls.target.set(0,0,0); controls.update();}
+function perspView(){const s=H*GRID; camera.position.set(s*0.42,s*0.72,s*0.85); controls.target.set(0,0,0); controls.update();}
 
 const seedEl=document.getElementById('seed');
 function regen(seed){ seedEl.value=seed; build(generate(seed)); }
-document.getElementById('gen').onclick=()=>regen((parseInt(seedEl.value||'0')||0)+1+Math.floor(Math.random()*7));
+document.getElementById('gen').onclick=()=>regen((parseInt(seedEl.value||'0')||0)+1+Math.floor(Math.random()*9));
 seedEl.onchange=()=>regen(parseInt(seedEl.value||'0')||0);
 document.getElementById('top').onclick=topView;
 document.getElementById('persp').onclick=perspView;
 
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
-regen(123);
+regen(7);
 (function loop(){requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera);})();
 </script>
 </body>
