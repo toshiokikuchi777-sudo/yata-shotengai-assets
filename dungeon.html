@@ -175,18 +175,33 @@ function build(L){
       else box(ASTRIP,WH,GRID,wx(gx)-AOFF,WH/2,wz(gy),mAlleyW);
     }
   }
-  // 大通り沿いの店舗（厚い建物＋色暖簾/看板＋提灯）＝商店街として店が並ぶ
-  const SD=6;  // 店の奥行き
+  // 大通り沿いの店舗：1区画を複数の小店に分割（各店にシャッター間口＋色暖簾＋提灯）
+  const SD=7, NSHOP=3, GAP=1.0;   // 奥行き / 1区画の店数 / 店間の柱
+  const mShutter=mat(0x4a4a52,{r:.7}), mFrame=mat(0x2c2620);
   function shopfront(gx,gy,d,color){
-    const rgb=CRGB[color]??0xcccccc, v=DV[d], off=HALF-SD/2, inner=HALF-SD;
-    if(d==='N'||d==='S')box(GRID,WH,SD,wx(gx),WH/2,wz(gy)+v[2]*off,mWood);
-    else box(SD,WH,GRID,wx(gx)+v[0]*off,WH/2,wz(gy),mWood);
-    // 店先の色帯（暖簾＋看板＝隠れ色を大きく見せる）
-    const bandM=mat(rgb,{e:rgb,ei:0.5,r:0.5});
-    if(d==='N'||d==='S')box(GRID*0.86,3.4,0.5,wx(gx),WH-3,wz(gy)+v[2]*(inner+0.3),bandM);
-    else box(0.5,3.4,GRID*0.86,wx(gx)+v[0]*(inner+0.3),WH-3,wz(gy),bandM);
-    // 色提灯（街路側に吊る）
-    sph(1.3,wx(gx)+v[0]*(inner-1.2),WH*0.42,wz(gy)+v[2]*(inner-1.2),mat(rgb,{e:rgb,ei:0.95,r:0.4}));
+    const rgb=CRGB[color]??0xcccccc, v=DV[d], off=HALF-SD/2, inner=HALF-SD, ns=(d==='N'||d==='S');
+    const fx=wx(gx), fz=wz(gy);
+    // 建物本体（厚い・全幅）
+    if(ns)box(GRID,WH,SD,fx,WH/2,fz+v[2]*off,mWood); else box(SD,WH,GRID,fx+v[0]*off,WH/2,fz,mWood);
+    const unit=(GRID-GAP*(NSHOP+1))/NSHOP, fcM=mat(rgb,{e:rgb,ei:0.5,r:.5});
+    for(let i=0;i<NSHOP;i++){
+      const ao=-GRID/2+GAP+unit/2+i*(unit+GAP);
+      const bx=ns?fx+ao:fx+v[0]*(inner+0.35), bz=ns?fz+v[2]*(inner+0.35):fz+ao;
+      const W1=ns?unit:0.6, D1=ns?0.6:unit;
+      // シャッター（下部・間口）
+      box(W1,WH*0.52,D1,bx,WH*0.27,bz,mShutter);
+      // 暖簾/看板（上部・隠れ色）
+      box(ns?unit:0.5,WH*0.26,ns?0.5:unit,bx,WH*0.71,bz,fcM);
+      // 提灯
+      const lx=ns?fx+ao:fx+v[0]*(inner-1.3), lz=ns?fz+v[2]*(inner-1.3):fz+ao;
+      sph(0.95,lx,WH*0.5,lz,mat(rgb,{e:rgb,ei:0.95,r:.4}));
+    }
+    // 店間の柱（区切り）
+    for(let i=0;i<=NSHOP;i++){
+      const ao=-GRID/2+GAP/2+i*(unit+GAP);
+      const bx=ns?fx+ao:fx+v[0]*(inner+0.2), bz=ns?fz+v[2]*(inner+0.2):fz+ao;
+      box(ns?GAP:1.0,WH,ns?1.0:GAP,bx,WH/2,bz,mFrame);
+    }
   }
   function floor(gx,gy,m){box(GRID,FT,GRID,wx(gx),-FT/2,wz(gy),m);}
   function wall(gx,gy,d,m){const e=HALF-WT/2;
