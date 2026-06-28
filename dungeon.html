@@ -105,6 +105,14 @@ function generate(seed){
   const cells={}; for(const c of all)cells[k(c[0],c[1])]={gx:c[0],gy:c[1],kind:'road',opens:opens[k(c[0],c[1])]};
   let goal=start,gb=-1; for(const c of all){const kk=k(c[0],c[1]); const sc=(dstart[kk]??-1)*2+(deg(opens[kk])===1?1:0); if(sc>gb){gb=sc;goal={gx:c[0],gy:c[1]};}}
   cells[k(goal.gx,goal.gy)].kind='gate';
+  // 大通り＝最短ルート(入口→鳥居)＋交差点。それ以外＝裏道（狭い）
+  const spine=new Set();
+  {let cx=start.gx,cy=start.gy; cx=goal.gx;cy=goal.gy;
+    while(!(cx===start.gx&&cy===start.gy)){spine.add(k(cx,cy)); const cd=dstart[k(cx,cy)]; let mv=null;
+      for(const d in opens[k(cx,cy)]){const nx=cx+D[d][0],ny=cy+D[d][1]; if(dstart[k(nx,ny)]===cd-1){mv=[nx,ny];break;}}
+      if(!mv)break; cx=mv[0];cy=mv[1];}
+    spine.add(k(start.gx,start.gy));}
+  for(const c of all){const kk=k(c[0],c[1]); cells[kk].tier=(spine.has(kk)||deg(opens[kk])>=3)?'street':'alley';}
   const deads=all.filter(c=>deg(opens[k(c[0],c[1])])===1&&!(c[0]===start.gx&&c[1]===start.gy)&&!(c[0]===goal.gx&&c[1]===goal.gy));
   let shrine=null;
   if(deads.length){let b=-1; for(const c of deads){const dd=dstart[k(c[0],c[1])]??0; if(dd>b){b=dd;shrine={gx:c[0],gy:c[1]};}}}
@@ -114,13 +122,13 @@ function generate(seed){
   for(let i=roadc.length-1;i>0;i--){const j=ri(0,i);[roadc[i],roadc[j]]=[roadc[j],roadc[i]];}
   roadc.sort((a,b)=>deg(opens[k(b[0],b[1])])-deg(opens[k(a[0],a[1])]));
   let plaza=null; if(roadc.length){plaza={gx:roadc[0][0],gy:roadc[0][1]}; cells[k(plaza.gx,plaza.gy)].kind='plaza';}
-  let avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&(dstart[k(c[0],c[1])]??0)>=2);
+  let avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&cells[k(c[0],c[1])].tier==='street'&&(dstart[k(c[0],c[1])]??0)>=2);
   for(let i=avail.length-1;i>0;i--){const j=ri(0,i);[avail[i],avail[j]]=[avail[j],avail[i]];}
   const nshop=Math.min(avail.length,ri(5,8)); let koyakkey=null;
   for(let i=0;i<nshop;i++){const c=avail[i]; const cc=cells[k(c[0],c[1])]; cc.kind=i===0?'koyakkey':'shop'; cc.color=COLORS[ri(0,4)]; if(i===0)koyakkey={gx:c[0],gy:c[1]};}
   const hide=[];
   for(const c of all){const cc=cells[k(c[0],c[1])];
-    if(cc.kind!=='shrine')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,color:COLORS[ri(0,4)]});
+    if(cc.kind!=='shrine'&&cc.tier==='street')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,color:COLORS[ri(0,4)]});
     if(cc.kind==='shop'||cc.kind==='koyakkey')hide.push({gx:c[0],gy:c[1],side:'C',color:cc.color});}
   let walk=all.filter(c=>!(c[0]===start.gx&&c[1]===start.gy)).map(c=>({gx:c[0],gy:c[1]}));
   for(let i=walk.length-1;i>0;i--){const j=ri(0,i);[walk[i],walk[j]]=[walk[j],walk[i]];}
@@ -155,8 +163,18 @@ function sph(r,x,y,z,m){const me=new THREE.Mesh(new THREE.SphereGeometry(r,16,12
 function build(L){
   scene.remove(town); town.traverse(o=>{if(o.geometry)o.geometry.dispose();}); town=new THREE.Group(); scene.add(town);
   const wx=g=>(g-(L.W-1)/2)*GRID, wz=g=>(g-(L.H-1)/2)*GRID;
-  const mRoad=mat(C.road,{r:1}), mWood=mat(C.wood), mStone=mat(C.stone), mSign=mat(C.sign,{r:.6}),
-        mTorii=mat(C.torii), mPlaza=mat(C.plaza,{r:1}), mLeaf=mat(C.leaf), mTrunk=mat(C.trunk), mShopK=mat(C.shopK,{r:1});
+  const mRoad=mat(C.road,{r:1}), mWood=mat(C.wood), mStone=mat(C.stone),
+        mTorii=mat(C.torii), mPlaza=mat(C.plaza,{r:1}), mLeaf=mat(C.leaf), mTrunk=mat(C.trunk), mShopK=mat(C.shopK,{r:1}),
+        mAlleyF=mat(0x201f26,{r:1}), mAlleyW=mat(0x2a2630);
+  const ASTRIP=5, AOFF=9.5;  // 裏道の側壁（外側strip）＝中央14studの細い道
+  function alleyWalls(gx,gy,opens){
+    for(const d of ['N','S','E','W'])if(!opens[d]){
+      if(d==='N')box(GRID,WH,ASTRIP,wx(gx),WH/2,wz(gy)+AOFF,mAlleyW);
+      else if(d==='S')box(GRID,WH,ASTRIP,wx(gx),WH/2,wz(gy)-AOFF,mAlleyW);
+      else if(d==='E')box(ASTRIP,WH,GRID,wx(gx)+AOFF,WH/2,wz(gy),mAlleyW);
+      else box(ASTRIP,WH,GRID,wx(gx)-AOFF,WH/2,wz(gy),mAlleyW);
+    }
+  }
   function floor(gx,gy,m){box(GRID,FT,GRID,wx(gx),-FT/2,wz(gy),m);}
   function wall(gx,gy,d,m){const e=HALF-WT/2;
     if(d==='N'||d==='S')box(GRID,WH,WT,wx(gx),WH/2,wz(gy)+(d==='N'?e:-e),m);
@@ -166,11 +184,11 @@ function build(L){
   // 床＋特殊
   for(const key in L.cells){const c=L.cells[key];
     if(c.kind==='plaza'){floor(c.gx,c.gy,mPlaza); box(1.8,8,1.8,wx(c.gx),4,wz(c.gy),mTrunk); sph(5.5,wx(c.gx),10,wz(c.gy),mLeaf);}
-    else if(c.kind==='shrine'){floor(c.gx,c.gy,mStone);
-      for(const d of ['N','S','E','W'])if(!c.opens[d])wall(c.gx,c.gy,d,mWood);
+    else if(c.kind==='shrine'){floor(c.gx,c.gy,mStone); alleyWalls(c.gx,c.gy,c.opens);
       sph(1.6,wx(c.gx),3.5,wz(c.gy),mat(0x6fa0d8,{e:0x4a78c8,ei:1,r:0.4}));}
     else if(c.kind==='shop'||c.kind==='koyakkey'){const isK=c.kind==='koyakkey'; floor(c.gx,c.gy,isK?mShopK:mWood);
       if(isK)box(GRID*0.6,2,GRID*0.6,wx(c.gx),WH+1.2,wz(c.gy),mat(0x8c52b4,{e:0x8c52b4,ei:0.7}));}
+    else if(c.tier==='alley'){floor(c.gx,c.gy,mAlleyF); alleyWalls(c.gx,c.gy,c.opens);}
     else floor(c.gx,c.gy,mRoad);
   }
   // ファサード＋色提灯／店内中央提灯
