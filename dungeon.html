@@ -76,7 +76,7 @@
 <div class="hint" id="orbithint">drag:回転 ・ wheel:ズーム ・ 右drag:移動</div>
 <div id="walkui">
   <div class="wrow"><b>歩行モード</b>　WASD／矢印＝移動　Shift＝スピードアップ🏃　マウス＝視点（画面クリックで視点ロック）</div>
-  <div class="wrow2"><span id="spdtag">walk</span><button id="exit">出る（Esc）</button></div>
+  <div class="wrow2"><span id="spdtag">walk</span><button id="vtoggle">👁 一人称（V）</button><button id="exit">出る（Esc）</button></div>
 </div>
 
 <script type="importmap">
@@ -224,9 +224,9 @@ function loadShops(){
 }
 let town=new THREE.Group(); scene.add(town);
 // ───────── 歩行モード（Walking.fbx→walking.glb） ─────────
-let curL=null, mode='orbit', walkChar=null, mixer=null, walkAction=null;
-const clock=new THREE.Clock(), keys={};
-const player={x:0,z:0,yaw:0}, camRig={yaw:0,pitch:0.34,dist:20};
+let curL=null, mode='orbit', walkChar=null, mixer=null, walkAction=null, view='tps';
+const clock=new THREE.Clock(), keys={}, camRay=new THREE.Raycaster();
+const player={x:0,z:0,yaw:0}, camRig={yaw:0,pitch:0.5,dist:16};
 const CHAR_RAW_H=1.882, CHAR_H=5.6, CHAR_SCALE=CHAR_H/CHAR_RAW_H, CHAR_R=1.8, CHAR_FWD=0;
 const WALK_SPD=22, RUN_SPD=42;
 const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??0.9,metalness:0,emissive:o.e??0x000000,emissiveIntensity:o.ei??1});
@@ -392,7 +392,8 @@ function enterWalk(){
   mode='walk';
   player.x=cellW(curL.start.gx,curL.W); player.z=cellW(curL.start.gy,curL.H); player.yaw=0;
   walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=CHAR_FWD; walkChar.visible=true;
-  camRig.yaw=0; camRig.pitch=0.34;
+  view='tps'; document.getElementById('vtoggle').textContent='👁 一人称（V）';
+  camRig.yaw=0; camRig.pitch=0.5;
   controls.enabled=false;
   document.getElementById('walkui').style.display='flex';
   document.getElementById('orbithint').style.display='none';
@@ -405,13 +406,18 @@ function exitWalk(){
   if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
   perspView();
 }
+function toggleView(){ view=(view==='tps')?'fps':'tps';
+  document.getElementById('vtoggle').textContent=(view==='tps')?'👁 一人称（V）':'👁 三人称（V）';
+  if(view==='fps')camRig.pitch=Math.max(-0.25,Math.min(0.35,camRig.pitch)); }
 document.getElementById('enter').onclick=enterWalk;
 document.getElementById('exit').onclick=exitWalk;
+document.getElementById('vtoggle').onclick=toggleView;
 addEventListener('keydown',e=>{ keys[e.code]=true; if(e.code==='Escape'&&mode==='walk')exitWalk();
+  if(e.code==='KeyV'&&mode==='walk')toggleView();
   if(mode==='walk'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('mousemove',e=>{ if(mode==='walk'&&document.pointerLockElement){
-  camRig.yaw-=e.movementX*0.0028; camRig.pitch=Math.max(-0.15,Math.min(0.95,camRig.pitch+e.movementY*0.0022)); }});
+  camRig.yaw-=e.movementX*0.0028; camRig.pitch=Math.max(-0.85,Math.min(0.95,camRig.pitch+e.movementY*0.0022)); }});
 renderer.domElement.addEventListener('click',()=>{ if(mode==='walk'&&!document.pointerLockElement)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock(); });
 
 function updateWalk(dt){
@@ -432,9 +438,17 @@ function updateWalk(dt){
   if(walkAction){ walkAction.paused=!moving; walkAction.timeScale=run?1.7:1.05; }
   if(mixer)mixer.update(dt);
   const tag=document.getElementById('spdtag'); if(tag){ tag.textContent=run?'run 🏃':'walk'; tag.className=run?'run':''; }
-  const cp=Math.cos(camRig.pitch);
-  camera.position.set(player.x - sy*camRig.dist*cp, CHAR_H*0.62 + Math.sin(camRig.pitch)*camRig.dist + 2.5, player.z - cy*camRig.dist*cp);
-  camera.lookAt(player.x, CHAR_H*0.55, player.z);
+  if(walkChar)walkChar.visible=(view==='tps');  // 一人称は自分の体を隠す
+  if(view==='fps'){
+    const ey=CHAR_H*0.92, p=camRig.pitch;
+    camera.position.set(player.x, ey, player.z);
+    camera.lookAt(player.x + sy*Math.cos(p), ey - Math.sin(p), player.z + cy*Math.cos(p));
+  } else {
+    // 三人称＝壁(高さ14)を越える高め追従（俯瞰3/4）。背後に壁があっても見下ろせる＝クリップ無し
+    const back=11, camY=30;
+    camera.position.set(player.x - sy*back, camY, player.z - cy*back);
+    camera.lookAt(player.x, CHAR_H*0.5, player.z);
+  }
 }
 
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
