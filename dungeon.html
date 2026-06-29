@@ -24,6 +24,13 @@
   #pwgate{position:fixed;inset:0;z-index:99999;background:#0c0b0d;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#ece7dd}
   #pwgate input{background:#15131a;border:1px solid #3a3340;color:#ece7dd;border-radius:8px;padding:10px 14px;font-size:16px;width:220px;text-align:center;outline:none}
   #pwgate button{margin-top:12px;background:#c0453b;color:#fff;border:0;border-radius:8px;padding:9px 22px}
+  button.enter{background:#1f2a22;color:#7fd0a0;border-color:#335a3f;font-weight:700}
+  button.enter:hover{background:#27352b}
+  #walkui{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:20;flex-direction:column;gap:8px;align-items:center;background:#15131988;backdrop-filter:blur(6px);border:1px solid #2a2630;border-radius:12px;padding:10px 16px;text-align:center}
+  #walkui .wrow{font-size:13px;color:#cfc7b8}
+  #walkui .wrow2{display:flex;gap:10px;align-items:center;justify-content:center}
+  #spdtag{font-size:12px;color:#7fd0a0;border:1px solid #335a3f;border-radius:6px;padding:3px 10px;min-width:64px}
+  #spdtag.run{color:#ffd27f;border-color:#7a5a31}
 </style>
 </head>
 <body>
@@ -64,8 +71,13 @@
   <label>seed</label><input id="seed" type="number" value="7">
   <button id="top">真上から</button>
   <button id="persp">斜めから</button>
+  <button id="enter" class="enter">🚶 中に入って歩く</button>
 </div>
-<div class="hint">drag:回転 ・ wheel:ズーム ・ 右drag:移動</div>
+<div class="hint" id="orbithint">drag:回転 ・ wheel:ズーム ・ 右drag:移動</div>
+<div id="walkui">
+  <div class="wrow"><b>歩行モード</b>　WASD／矢印＝移動　Shift＝スピードアップ🏃　マウス＝視点（画面クリックで視点ロック）</div>
+  <div class="wrow2"><span id="spdtag">walk</span><button id="exit">出る（Esc）</button></div>
+</div>
 
 <script type="importmap">
 { "imports": {
@@ -211,11 +223,18 @@ function loadShops(){
   })));
 }
 let town=new THREE.Group(); scene.add(town);
+// ───────── 歩行モード（Walking.fbx→walking.glb） ─────────
+let curL=null, mode='orbit', walkChar=null, mixer=null, walkAction=null;
+const clock=new THREE.Clock(), keys={};
+const player={x:0,z:0,yaw:0}, camRig={yaw:0,pitch:0.34,dist:20};
+const CHAR_RAW_H=1.882, CHAR_H=5.6, CHAR_SCALE=CHAR_H/CHAR_RAW_H, CHAR_R=1.8, CHAR_FWD=0;
+const WALK_SPD=22, RUN_SPD=42;
 const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??0.9,metalness:0,emissive:o.e??0x000000,emissiveIntensity:o.ei??1});
 function box(w,h,d,x,y,z,m){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); me.position.set(x,y,z); town.add(me); return me;}
 function sph(r,x,y,z,m){const me=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m); me.position.set(x,y,z); town.add(me); return me;}
 
 function build(L){
+  curL=L;
   scene.remove(town); town.traverse(o=>{if(o.geometry)o.geometry.dispose();}); town=new THREE.Group(); scene.add(town);
   const wx=g=>(g-(L.W-1)/2)*GRID, wz=g=>(g-(L.H-1)/2)*GRID;
   const mRoad=mat(C.road,{r:1}), mWood=mat(C.wood), mStone=mat(C.stone),
@@ -338,15 +357,92 @@ function topView(){const s=H*GRID; camera.position.set(0.001,s*1.25,0.001); cont
 function perspView(){const s=H*GRID; camera.position.set(s*0.42,s*0.72,s*0.85); controls.target.set(0,0,0); controls.update();}
 
 const seedEl=document.getElementById('seed');
-function regen(seed){ seedEl.value=seed; build(generate(seed)); }
+function regen(seed){ if(mode==='walk')exitWalk(); seedEl.value=seed; build(generate(seed)); }
 document.getElementById('gen').onclick=()=>regen((parseInt(seedEl.value||'0')||0)+1+Math.floor(Math.random()*9));
 seedEl.onchange=()=>regen(parseInt(seedEl.value||'0')||0);
 document.getElementById('top').onclick=topView;
 document.getElementById('persp').onclick=perspView;
 
+// ───────── 歩行モード本体 ─────────
+function loadWalker(){
+  return new Promise(res=>{ new GLTFLoader().load('walking.glb?v=1', g=>{
+    walkChar=g.scene; walkChar.scale.setScalar(CHAR_SCALE);
+    walkChar.traverse(o=>{ if(o.isMesh){o.frustumCulled=false; if(o.material){o.material.metalness=0; o.material.roughness=0.85;}} });
+    mixer=new THREE.AnimationMixer(walkChar);
+    if(g.animations&&g.animations.length){ walkAction=mixer.clipAction(g.animations[0]); walkAction.play(); walkAction.paused=true; }
+    walkChar.visible=false; scene.add(walkChar); res();
+  }, undefined, ()=>{ console.warn('walking.glb 読込失敗'); res(); }); });
+}
+const cellW=(g,n)=>(g-(n-1)/2)*GRID;
+// 迷路の壁に当たる（セルベース：閉じた辺はクランプ、開いた辺は隣へ通す）
+function clampMaze(nx,nz){
+  const W=curL.W,H=curL.H;
+  let gx=Math.max(0,Math.min(W-1,Math.round(nx/GRID+(W-1)/2)));
+  let gy=Math.max(0,Math.min(H-1,Math.round(nz/GRID+(H-1)/2)));
+  const c=curL.cells[gx+','+gy]; if(!c)return [nx,nz];
+  const cx=cellW(gx,W), cz=cellW(gy,H); let lx=nx-cx, lz=nz-cz;
+  const ext=(c.tier==='alley')?(8-4):(HALF-7);  // alley:4 / street:5（シャッター手前）
+  const E=ext-CHAR_R;
+  const lzp=c.opens.N?HALF:E, lzn=c.opens.S?HALF:E, lxp=c.opens.E?HALF:E, lxn=c.opens.W?HALF:E;
+  if(lz>lzp)lz=lzp; if(lz<-lzn)lz=-lzn; if(lx>lxp)lx=lxp; if(lx<-lxn)lx=-lxn;
+  return [cx+lx, cz+lz];
+}
+function enterWalk(){
+  if(!curL||!walkChar){ alert('歩行キャラの読込中です'); return; }
+  mode='walk';
+  player.x=cellW(curL.start.gx,curL.W); player.z=cellW(curL.start.gy,curL.H); player.yaw=0;
+  walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=CHAR_FWD; walkChar.visible=true;
+  camRig.yaw=0; camRig.pitch=0.34;
+  controls.enabled=false;
+  document.getElementById('walkui').style.display='flex';
+  document.getElementById('orbithint').style.display='none';
+  const cv=renderer.domElement; if(cv.requestPointerLock)cv.requestPointerLock();
+}
+function exitWalk(){
+  mode='orbit'; if(walkChar)walkChar.visible=false; controls.enabled=true;
+  document.getElementById('walkui').style.display='none';
+  document.getElementById('orbithint').style.display='';
+  if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();
+  perspView();
+}
+document.getElementById('enter').onclick=enterWalk;
+document.getElementById('exit').onclick=exitWalk;
+addEventListener('keydown',e=>{ keys[e.code]=true; if(e.code==='Escape'&&mode==='walk')exitWalk();
+  if(mode==='walk'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault(); });
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('mousemove',e=>{ if(mode==='walk'&&document.pointerLockElement){
+  camRig.yaw-=e.movementX*0.0028; camRig.pitch=Math.max(-0.15,Math.min(0.95,camRig.pitch+e.movementY*0.0022)); }});
+renderer.domElement.addEventListener('click',()=>{ if(mode==='walk'&&!document.pointerLockElement)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock(); });
+
+function updateWalk(dt){
+  let fx=0,fz=0;
+  if(keys['KeyW']||keys['ArrowUp'])fz-=1; if(keys['KeyS']||keys['ArrowDown'])fz+=1;
+  if(keys['KeyA']||keys['ArrowLeft'])fx-=1; if(keys['KeyD']||keys['ArrowRight'])fx+=1;
+  const moving=(fx||fz), run=keys['ShiftLeft']||keys['ShiftRight'], spd=run?RUN_SPD:WALK_SPD;
+  const cy=Math.cos(camRig.yaw), sy=Math.sin(camRig.yaw);
+  if(moving){
+    const len=Math.hypot(fx,fz); fx/=len; fz/=len;
+    const wx2=sy*(-fz)+cy*fx, wz2=cy*(-fz)-sy*fx;
+    const [rx,rz]=clampMaze(player.x+wx2*spd*dt, player.z+wz2*spd*dt);
+    player.x=rx; player.z=rz;
+    let tyaw=Math.atan2(wx2,wz2)+CHAR_FWD, d=tyaw-player.yaw;
+    while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; player.yaw+=d*0.2;
+  }
+  walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=player.yaw;
+  if(walkAction){ walkAction.paused=!moving; walkAction.timeScale=run?1.7:1.05; }
+  if(mixer)mixer.update(dt);
+  const tag=document.getElementById('spdtag'); if(tag){ tag.textContent=run?'run 🏃':'walk'; tag.className=run?'run':''; }
+  const cp=Math.cos(camRig.pitch);
+  camera.position.set(player.x - sy*camRig.dist*cp, CHAR_H*0.62 + Math.sin(camRig.pitch)*camRig.dist + 2.5, player.z - cy*camRig.dist*cp);
+  camera.lookAt(player.x, CHAR_H*0.55, player.z);
+}
+
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
-loadShops().then(()=>regen(7));
-(function loop(){requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera);})();
+Promise.all([loadShops(), loadWalker()]).then(()=>regen(7));
+(function loop(){requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);
+  if(mode==='walk')updateWalk(dt); else { controls.update(); if(mixer)mixer.update(0); }
+  renderer.render(scene,camera);})();
 </script>
 </body>
 </html>
