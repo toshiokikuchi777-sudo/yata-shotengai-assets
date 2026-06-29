@@ -393,7 +393,7 @@ function enterWalk(){
   player.x=cellW(curL.start.gx,curL.W); player.z=cellW(curL.start.gy,curL.H); player.yaw=0;
   walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=CHAR_FWD; walkChar.visible=true;
   view='tps'; document.getElementById('vtoggle').textContent='👁 一人称（V）';
-  camRig.yaw=0; camRig.pitch=0.5;
+  camRig.yaw=0; camRig.pitch=0.2;
   controls.enabled=false;
   document.getElementById('walkui').style.display='flex';
   document.getElementById('orbithint').style.display='none';
@@ -421,7 +421,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true; if(e.code==='Escape'&&mode===
   if(mode==='walk'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('mousemove',e=>{ if(mode==='walk'&&document.pointerLockElement){
-  camRig.yaw-=e.movementX*0.0028; camRig.pitch=Math.max(-0.85,Math.min(0.95,camRig.pitch+e.movementY*0.0022)); }});
+  camRig.yaw-=e.movementX*0.0028; camRig.pitch=Math.max(-0.9,Math.min(1.2,camRig.pitch+e.movementY*0.0024)); }});
 renderer.domElement.addEventListener('click',()=>{ if(mode==='walk'&&!document.pointerLockElement)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock(); });
 
 function updateWalk(dt){
@@ -432,7 +432,7 @@ function updateWalk(dt){
   const cy=Math.cos(camRig.yaw), sy=Math.sin(camRig.yaw);
   if(moving){
     const len=Math.hypot(fx,fz); fx/=len; fz/=len;
-    const wx2=sy*(-fz)+cy*fx, wz2=cy*(-fz)-sy*fx;
+    const wx2=sy*(-fz)-cy*fx, wz2=cy*(-fz)+sy*fx;  // 左右（ストレイフ）を画面基準に合わせる
     const [rx,rz]=clampMaze(player.x+wx2*spd*dt, player.z+wz2*spd*dt);
     player.x=rx; player.z=rz;
     let tyaw=Math.atan2(wx2,wz2)+CHAR_FWD, d=tyaw-player.yaw;
@@ -448,10 +448,20 @@ function updateWalk(dt){
     camera.position.set(player.x, ey, player.z);
     camera.lookAt(player.x + sy*Math.cos(p), ey - Math.sin(p), player.z + cy*Math.cos(p));
   } else {
-    // 三人称＝壁(高さ14)を越える高め追従（俯瞰3/4）。背後に壁があっても見下ろせる＝クリップ無し
-    const back=11, camY=30;
-    camera.position.set(player.x - sy*back, camY, player.z - cy*back);
-    camera.lookAt(player.x, CHAR_H*0.5, player.z);
+    // 三人称＝マウス上下で視点の高さを調整（上げる＝俯瞰／下げる＝背後）。壁に入ったら引き寄せ＝暗転防止
+    const elev=Math.max(0.35,Math.min(1.45, 1.5 - camRig.pitch));
+    const D=camRig.dist, back=Math.cos(elev)*D, up=Math.sin(elev)*D, headY=CHAR_H*0.55;
+    const desired=new THREE.Vector3(player.x - sy*back, headY+up, player.z - cy*back);
+    let camPos=desired;
+    if(elev<0.95){ // 背後寄り視点のときだけ壁引き寄せ（俯瞰は壁を越えるので不要＝アップになりすぎ防止）
+      const head=new THREE.Vector3(player.x, headY+1, player.z);
+      const dv=desired.clone().sub(head), dl=dv.length(); dv.normalize();
+      camRay.set(head, dv); camRay.far=dl;
+      const hit=camRay.intersectObjects(town.children,true);
+      if(hit.length)camPos=head.clone().add(dv.multiplyScalar(Math.max(2.2,hit[0].distance-1.2)));
+    }
+    camera.position.copy(camPos);
+    camera.lookAt(player.x, headY, player.z);
   }
 }
 
