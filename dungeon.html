@@ -86,6 +86,8 @@ function generate(seed){
   const rng=mulberry32(seed>>>0);
   const D={N:[0,1],S:[0,-1],E:[1,0],W:[-1,0]}, OPP={N:'S',S:'N',E:'W',W:'E'};
   const ri=(a,b)=>a+Math.floor(rng()*(b-a+1)); const k=(x,y)=>x+','+y; const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+  const zoneOf=gy=>gy<=1?0:gy<=5?1:gy<=6?2:3;  // 0安全(入口) 1本通り 2広場帯 3鳥居前
+  const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=ri(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;};
   const opens={}, all=[];
   for(let x=0;x<W;x++)for(let y=0;y<H;y++){opens[k(x,y)]={}; all.push([x,y]);}
   let sx=ri(0,W-1); const start={gx:sx,gy:0};
@@ -104,53 +106,83 @@ function generate(seed){
       if(opens[nk]&&dist[nk]===undefined){dist[nk]=dist[k(c[0],c[1])]+1; q.push([nx,ny]);}}} return dist;};
   const dstart=bfs(sx,0);
   const cells={}; for(const c of all)cells[k(c[0],c[1])]={gx:c[0],gy:c[1],kind:'road',opens:opens[k(c[0],c[1])]};
-  let goal=start,gb=-1; for(const c of all){const kk=k(c[0],c[1]); const sc=(dstart[kk]??-1)*2+(deg(opens[kk])===1?1:0); if(sc>gb){gb=sc;goal={gx:c[0],gy:c[1]};}}
+  // ゴール＝奥の行(gy>=H-2)に限定して最遠点（＝一方向の濃度勾配を毎回固定）＋できれば行き止まり
+  let goal=start,gb=-1; for(const c of all){if(c[1]<H-2)continue; const kk=k(c[0],c[1]); const sc=(dstart[kk]??-1)*2+(deg(opens[kk])===1?1:0); if(sc>gb){gb=sc;goal={gx:c[0],gy:c[1]};}}
+  if(gb<0)for(const c of all){const kk=k(c[0],c[1]); const sc=(dstart[kk]??-1); if(sc>gb){gb=sc;goal={gx:c[0],gy:c[1]};}}
   cells[k(goal.gx,goal.gy)].kind='gate';
-  // 大通り＝最短ルート(入口→鳥居)＋交差点。それ以外＝裏道（狭い）
-  const spine=new Set();
-  {let cx=start.gx,cy=start.gy; cx=goal.gx;cy=goal.gy;
-    while(!(cx===start.gx&&cy===start.gy)){spine.add(k(cx,cy)); const cd=dstart[k(cx,cy)]; let mv=null;
+  // 大通り＝最短ルート(入口→鳥居)。順序付きでも保持（LOS加工に使う）
+  const spine=new Set(),spineArr=[];
+  {let cx=goal.gx,cy=goal.gy;
+    while(!(cx===start.gx&&cy===start.gy)){spine.add(k(cx,cy)); spineArr.push([cx,cy]); const cd=dstart[k(cx,cy)]; let mv=null;
       for(const d in opens[k(cx,cy)]){const nx=cx+D[d][0],ny=cy+D[d][1]; if(dstart[k(nx,ny)]===cd-1){mv=[nx,ny];break;}}
       if(!mv)break; cx=mv[0];cy=mv[1];}
-    spine.add(k(start.gx,start.gy));}
-  for(const c of all){const kk=k(c[0],c[1]); cells[kk].tier=(spine.has(kk)||deg(opens[kk])>=3)?'street':'alley';}
+    spine.add(k(start.gx,start.gy)); spineArr.push([start.gx,start.gy]); spineArr.reverse();}
+  // LOS：大通りの直線が3マス続いたら横へ逃げ分岐を1本足す（一本道で詰む理不尽を防ぐ＝角で逃げられる）
+  {let run=0,pd=null;
+   for(let i=0;i<spineArr.length-1;i++){const a=spineArr[i],b=spineArr[i+1];
+     const dx=b[0]-a[0],dy=b[1]-a[1],dd=dx!==0?(dx>0?'E':'W'):(dy>0?'N':'S');
+     run=(dd===pd)?run+1:0; pd=dd;
+     if(run>=2){const perp=(dd==='N'||dd==='S')?['E','W']:['N','S'];
+       for(const pp of perp){const nx=a[0]+D[pp][0],ny=a[1]+D[pp][1]; if(inb(nx,ny)&&!opens[k(a[0],a[1])][pp]){opens[k(a[0],a[1])][pp]=1; opens[k(nx,ny)][OPP[pp]]=1; break;}}
+       run=0;}}}
+  for(const c of all){const kk=k(c[0],c[1]); cells[kk].tier=(spine.has(kk)||deg(opens[kk])>=3)?'street':'alley'; cells[kk].zone=zoneOf(c[1]);}
   // 抜け道：大通り↔裏道をつなぐ通り抜け（逃げ道）を数本
   const passages=[];
   {const cands=[];
    for(const c of all){const kk=k(c[0],c[1]); if(cells[kk].tier!=='street')continue;
      for(const d in D){if(opens[kk][d])continue; const nx=c[0]+D[d][0],ny=c[1]+D[d][1],nk=k(nx,ny);
        if(cells[nk]&&cells[nk].tier==='alley')cands.push([c[0],c[1],d,nx,ny]);}}
-   for(let i=cands.length-1;i>0;i--){const j=ri(0,i);[cands[i],cands[j]]=[cands[j],cands[i]];}
+   shuf(cands);
    const n=Math.min(cands.length,ri(3,5));
    for(let i=0;i<n;i++){const p=cands[i]; opens[k(p[0],p[1])][p[2]]=1; opens[k(p[3],p[4])][OPP[p[2]]]=1; passages.push({gx:p[0],gy:p[1],side:p[2]});}}
+  // 行き止まり一覧（神社＋隠れ部屋に使う）
   const deads=all.filter(c=>deg(opens[k(c[0],c[1])])===1&&!(c[0]===start.gx&&c[1]===start.gy)&&!(c[0]===goal.gx&&c[1]===goal.gy));
+  shuf(deads);
   let shrine=null;
   if(deads.length){let b=-1; for(const c of deads){const dd=dstart[k(c[0],c[1])]??0; if(dd>b){b=dd;shrine={gx:c[0],gy:c[1]};}}}
   else{let bd=99; for(const c of all){if((c[0]===start.gx&&c[1]===start.gy)||(c[0]===goal.gx&&c[1]===goal.gy))continue; const dg=deg(opens[k(c[0],c[1])]); if(dg<bd){bd=dg;shrine={gx:c[0],gy:c[1]};}}}
   if(shrine)cells[k(shrine.gx,shrine.gy)].kind='shrine';
+  // 隠れ部屋＝別の行き止まり（全色の物陰がある安全部屋／追い込まれると詰むリスク＝駆け引き）
+  let hideroom=null;
+  for(const c of deads){if(shrine&&c[0]===shrine.gx&&c[1]===shrine.gy)continue; cells[k(c[0],c[1])].kind='hideroom'; hideroom={gx:c[0],gy:c[1]}; break;}
   let roadc=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&!(c[0]===start.gx&&c[1]===start.gy));
-  for(let i=roadc.length-1;i>0;i--){const j=ri(0,i);[roadc[i],roadc[j]]=[roadc[j],roadc[i]];}
+  shuf(roadc);
   roadc.sort((a,b)=>deg(opens[k(b[0],b[1])])-deg(opens[k(a[0],a[1])]));
   let plaza=null; if(roadc.length){plaza={gx:roadc[0][0],gy:roadc[0][1]}; cells[k(plaza.gx,plaza.gy)].kind='plaza';}
-  // コヤッキー店＝レア：1コースに1軒だけ（特別ランドマーク）
-  let avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&cells[k(c[0],c[1])].tier==='street'&&(dstart[k(c[0],c[1])]??0)>=3);
-  for(let i=avail.length-1;i>0;i--){const j=ri(0,i);[avail[i],avail[j]]=[avail[j],avail[i]];}
+  // コヤッキー店＝レア：中央寄りの大通りに1軒だけ（中継ランドマーク）
+  let avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&spine.has(k(c[0],c[1]))&&Math.abs(c[1]-Math.floor(H/2))<=2);
+  if(!avail.length)avail=all.filter(c=>cells[k(c[0],c[1])].kind==='road'&&cells[k(c[0],c[1])].tier==='street');
+  shuf(avail);
   let koyakkey=null;
   if(avail.length){const c=avail[0]; cells[k(c[0],c[1])].kind='koyakkey'; koyakkey={gx:c[0],gy:c[1]};}
-  // 隠れ色：各シャッターを別々の色に（隣と同色を避ける）
+  // 隠れ色：各シャッターを別々の色に。色はバッグ循環で均等＝合う色が必ず近い（理不尽防止）
   let _bag=[];
-  const nextColor=()=>{if(!_bag.length){_bag=[...COLORS];for(let i=_bag.length-1;i>0;i--){const j=ri(0,i);[_bag[i],_bag[j]]=[_bag[j],_bag[i]];}}return _bag.pop();};
+  const nextColor=()=>{if(!_bag.length){_bag=[...COLORS];shuf(_bag);}return _bag.pop();};
   const shopColors=()=>{const o=[];for(let i=0;i<NS;i++)o.push(nextColor());return o;};
   const hide=[];
   for(const c of all){const cc=cells[k(c[0],c[1])];
-    if(cc.kind!=='shrine'&&cc.tier==='street')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,colors:shopColors()});}
-  let walk=all.filter(c=>!(c[0]===start.gx&&c[1]===start.gy)).map(c=>({gx:c[0],gy:c[1]}));
-  for(let i=walk.length-1;i>0;i--){const j=ri(0,i);[walk[i],walk[j]]=[walk[j],walk[i]];}
-  const nF=Math.min(walk.length,5+ri(2,3));
-  const fragments=walk.slice(0,nF).map((f,i)=>({gx:f.gx,gy:f.gy,color:COLORS[i%COLORS.length]}));
+    if(cc.kind!=='shrine'&&cc.kind!=='hideroom'&&cc.tier==='street')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,colors:shopColors()});}
+  // お札動線：各ゾーン最低1枚＋大通り7:裏道3＋最後の1枚は鳥居前（巡る理由＝退屈と理不尽を消す）
+  const fcand=all.filter(c=>!(c[0]===start.gx&&c[1]===start.gy)&&!(c[0]===goal.gx&&c[1]===goal.gy));
+  const onSpine=c=>spine.has(k(c[0],c[1]));
+  let sp=fcand.filter(onSpine),al=fcand.filter(c=>!onSpine(c)); shuf(sp); shuf(al);
+  const nF=Math.min(fcand.length,5+ri(2,3));
+  const used=new Set(),pick=[];
+  const guard=spineArr.length>=2?spineArr[spineArr.length-2]:null;  // 鳥居前
+  for(let z=0;z<=3;z++){const pool=fcand.filter(c=>zoneOf(c[1])===z&&!used.has(k(c[0],c[1]))); if(pool.length&&pick.length<nF){const c=pool[ri(0,pool.length-1)]; used.add(k(c[0],c[1])); pick.push(c);}}
+  const draw=arr=>{while(arr.length){const c=arr.pop(); if(!used.has(k(c[0],c[1]))){used.add(k(c[0],c[1]));return c;}}return null;};
+  while(pick.length<nF){let c=(rng()<0.7?draw(sp):draw(al)); if(!c)c=draw(sp)||draw(al); if(!c)break; pick.push(c);}
+  if(guard&&pick.length)pick[pick.length-1]=[guard[0],guard[1]];
+  const seen=new Set(),uniq=[]; for(const c of pick){const ck=k(c[0],c[1]); if(!seen.has(ck)){seen.add(ck);uniq.push(c);}}
+  const fragments=uniq.map((c,i)=>({gx:c[0],gy:c[1],color:COLORS[i%COLORS.length]}));
+  // 八尺様＝中央（startともゴールとも分離）。能動狩りで寄る前提
   const ccx=Math.floor(W/2),ccy=Math.floor(H/2);
   let yas=start,yb=1e9; for(const c of all){if((c[0]===start.gx&&c[1]===start.gy)||(c[0]===goal.gx&&c[1]===goal.gy))continue; const d2=(c[0]-ccx)**2+(c[1]-ccy)**2; if(d2<yb){yb=d2;yas={gx:c[0],gy:c[1]};}}
-  return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey,passages};
+  // 巡回点（中央・広場・大通り中間）＋鳥居前の張り込み点＋最奥の火の見櫓（超遠ランドマーク）
+  const patrolNodes=[yas]; if(plaza)patrolNodes.push(plaza); if(spineArr.length)patrolNodes.push({gx:spineArr[Math.floor(spineArr.length/2)][0],gy:spineArr[Math.floor(spineArr.length/2)][1]});
+  const guardNode=guard?{gx:guard[0],gy:guard[1]}:null;
+  const beaconTower={gx:goal.gx,gy:H};
+  return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey,hideroom,passages,patrolNodes,guardNode,beaconTower};
 }
 
 // ───────── ブロック形状（MapBuilderV2と同一寸法・GRID=24） ─────────
@@ -189,6 +221,9 @@ function build(L){
   const mRoad=mat(C.road,{r:1}), mWood=mat(C.wood), mStone=mat(C.stone),
         mTorii=mat(C.torii), mPlaza=mat(C.plaza,{r:1}), mLeaf=mat(C.leaf), mTrunk=mat(C.trunk), mShopK=mat(C.shopK,{r:1}),
         mAlleyF=mat(0x201f26,{r:1}), mAlleyW=mat(0x2a2630);
+  const tint=(hex,f)=>{const r=Math.floor(((hex>>16)&255)*f),g=Math.floor(((hex>>8)&255)*f),b=Math.floor((hex&255)*f);return (r<<16)|(g<<8)|b;};
+  const ZD=[1.0,0.82,0.95,0.6];  // ゾーン別の明るさ（奥ほど暗い＝濃度勾配）
+  const mRoadZ=ZD.map(f=>mat(tint(C.road,f),{r:1})), mAlleyZ=ZD.map(f=>mat(tint(0x201f26,f),{r:1}));
   const ASTRIP=8, AOFF=8;  // 裏道の側壁（厚め）＝中央≈8studの細い道
   function alleyWalls(gx,gy,opens){
     for(const d of ['N','S','E','W'])if(!opens[d]){
@@ -232,14 +267,16 @@ function build(L){
   function lantern(gx,gy,d,color){const v=DV[d]; const rgb=CRGB[color]??0xcccccc;
     sph(1.2,wx(gx)+v[0]*(HALF-3),WH*0.5,wz(gy)+v[2]*(HALF-3),mat(rgb,{e:rgb,ei:0.95,r:0.4}));}
   // 床＋特殊
-  for(const key in L.cells){const c=L.cells[key];
+  for(const key in L.cells){const c=L.cells[key]; const z=c.zone??1;
     if(c.kind==='plaza'){floor(c.gx,c.gy,mPlaza); box(1.8,8,1.8,wx(c.gx),4,wz(c.gy),mTrunk); sph(5.5,wx(c.gx),10,wz(c.gy),mLeaf);}
     else if(c.kind==='shrine'){floor(c.gx,c.gy,mStone); alleyWalls(c.gx,c.gy,c.opens);
       sph(1.6,wx(c.gx),3.5,wz(c.gy),mat(0x6fa0d8,{e:0x4a78c8,ei:1,r:0.4}));}
+    else if(c.kind==='hideroom'){floor(c.gx,c.gy,mStone); alleyWalls(c.gx,c.gy,c.opens);
+      ['aka','ao','midori','ki','murasaki'].forEach((col,i)=>{const a=i/5*Math.PI*2; sph(1.0,wx(c.gx)+Math.cos(a)*7,WH*0.5,wz(c.gy)+Math.sin(a)*7,mat(CRGB[col],{e:CRGB[col],ei:0.95,r:0.4}));});}
     else if(c.kind==='koyakkey'){floor(c.gx,c.gy,mShopK);
       box(GRID*0.5,WH*1.5,GRID*0.5,wx(c.gx),WH*0.75,wz(c.gy),mat(0x9a52cc,{e:0x9a52cc,ei:0.75}));}
-    else if(c.tier==='alley'){floor(c.gx,c.gy,mAlleyF); alleyWalls(c.gx,c.gy,c.opens);}
-    else floor(c.gx,c.gy,mRoad);
+    else if(c.tier==='alley'){floor(c.gx,c.gy,mAlleyZ[z]); alleyWalls(c.gx,c.gy,c.opens);}
+    else floor(c.gx,c.gy,mRoadZ[z]);
   }
   // ファサード＋色提灯／店内中央提灯
   // 店舗：色一致の詳細GLBを各間口に配置（未ロードなら箱シャッターにフォールバック）
@@ -271,6 +308,15 @@ function build(L){
     box(GRID-1,0.3,GRID-1,X,0.25,Z,mat(0x7a2a2a,{e:0x5a1a1a,ei:0.8}));
     const bm=new THREE.MeshStandardMaterial({color:0xff5f5f,emissive:0xff5f5f,emissiveIntensity:0.7,transparent:true,opacity:0.4});
     const beacon=new THREE.Mesh(new THREE.BoxGeometry(2.2,80,2.2),bm); beacon.position.set(X,40,Z); town.add(beacon);}
+  // 火の見櫓（最奥の超遠ランドマーク＝出口方向の絶対基準・壁より高く見える）
+  if(L.beaconTower){const X=wx(L.beaconTower.gx),Z=wz(L.beaconTower.gy),mY=mat(0x2a211a),mR=mat(C.torii);
+    for(const ox of [-3,3])for(const oz of [-3,3])box(1.2,46,1.2,X+ox,23,Z+oz,mY);
+    box(10,1.2,10,X,30,Z,mY); box(9,1.0,9,X,40,Z,mY); box(12.5,2,12.5,X,47,Z,mR);
+    sph(2.2,X,49,Z,mat(0xffcf6e,{e:0xffb347,ei:1.15}));}
+  // 八尺様の巡回点（薄い輪）＋鳥居前の張り込み（赤い輪）
+  function ring(gx,gy,col,op,ir,or){const m=new THREE.Mesh(new THREE.RingGeometry(ir,or,28),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,side:THREE.DoubleSide})); m.rotation.x=-Math.PI/2; m.position.set(wx(gx),0.4,wz(gy)); town.add(m);}
+  for(const p of (L.patrolNodes||[]))ring(p.gx,p.gy,0xcfc8bd,0.24,5,7);
+  if(L.guardNode)ring(L.guardNode.gx,L.guardNode.gy,0xff6a6a,0.4,6,8.5);
   // 入口
   box(GRID*0.5,0.6,GRID*0.5,wx(L.start.gx),0.3,wz(L.start.gy),mat(0x4e8050,{e:0x2e6030,ei:0.7}));
   // 八尺様
@@ -284,8 +330,8 @@ function build(L){
 
   let nc=0,road=0; for(const key in L.cells){nc++; if(L.cells[key].kind==='road')road++;}
   document.getElementById('stat').innerHTML=
-    `seed <b>${L.seed}</b>／迷路 ${L.W}×${L.H}＝${nc}セル・隠れ色 ${L.hideSpots.length}・お札 ${L.fragments.length}<br>`+
-    `入口(${L.start.gx},${L.start.gy}) → 鳥居(${L.goal.gx},${L.goal.gy})　必ず連結`;
+    `seed <b>${L.seed}</b>／迷路 ${L.W}×${L.H}＝${nc}セル・隠れ色 ${L.hideSpots.length}・お札 ${L.fragments.length}（大通り偏重＋各ゾーン配分）<br>`+
+    `入口(${L.start.gx},${L.start.gy})→鳥居(${L.goal.gx},${L.goal.gy})　ゾーン:安全→本通り→広場→鳥居前（奥ほど暗）　必ず連結`;
 }
 
 function topView(){const s=H*GRID; camera.position.set(0.001,s*1.25,0.001); controls.target.set(0,0,0); controls.update();}
