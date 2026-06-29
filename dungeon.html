@@ -81,7 +81,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ───────── LevelGenV2（迷路：再帰的バックトラッカー＋braid。Luau/Pythonと同一） ─────────
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const COLORS=['aka','ao','midori','ki','murasaki'];
-const W=6,H=12,BRAID=0.6,NS=3;  // BRAID大=抜け道(逃げ道ループ)多 / NS=1区画の店数
+const W=6,H=10,BRAID=0.6,NS=3;  // BRAID大=抜け道(逃げ道ループ)多 / NS=1区画の店数
 function generate(seed){
   const rng=mulberry32(seed>>>0);
   const D={N:[0,1],S:[0,-1],E:[1,0],W:[-1,0]}, OPP={N:'S',S:'N',E:'W',W:'E'};
@@ -138,14 +138,18 @@ function generate(seed){
   let koyakkey=null;
   if(avail.length){const c=avail[0]; cells[k(c[0],c[1])].kind='koyakkey'; koyakkey={gx:c[0],gy:c[1]};}
   // 隠れ色：各シャッターを別々の色に（隣と同色を避ける）
-  const shopColors=()=>{const o=[];for(let i=0;i<NS;i++){let c2;do{c2=COLORS[ri(0,4)];}while(i>0&&c2===o[i-1]);o.push(c2);}return o;};
+  let _bag=[];
+  const nextColor=()=>{if(!_bag.length){_bag=[...COLORS];for(let i=_bag.length-1;i>0;i--){const j=ri(0,i);[_bag[i],_bag[j]]=[_bag[j],_bag[i]];}}return _bag.pop();};
+  const shopColors=()=>{const o=[];for(let i=0;i<NS;i++)o.push(nextColor());return o;};
   const hide=[];
   for(const c of all){const cc=cells[k(c[0],c[1])];
     if(cc.kind!=='shrine'&&cc.tier==='street')for(const d of ['N','S','E','W'])if(!cc.opens[d])hide.push({gx:c[0],gy:c[1],side:d,colors:shopColors()});}
   let walk=all.filter(c=>!(c[0]===start.gx&&c[1]===start.gy)).map(c=>({gx:c[0],gy:c[1]}));
   for(let i=walk.length-1;i>0;i--){const j=ri(0,i);[walk[i],walk[j]]=[walk[j],walk[i]];}
-  const fragments=walk.slice(0,Math.min(walk.length,5+ri(2,3)));
-  let yas=start,yb=-1; for(const c of all){if(c[0]===goal.gx&&c[1]===goal.gy)continue; const dd=dstart[k(c[0],c[1])]??-1; if(dd>yb){yb=dd;yas={gx:c[0],gy:c[1]};}}
+  const nF=Math.min(walk.length,5+ri(2,3));
+  const fragments=walk.slice(0,nF).map((f,i)=>({gx:f.gx,gy:f.gy,color:COLORS[i%COLORS.length]}));
+  const ccx=Math.floor(W/2),ccy=Math.floor(H/2);
+  let yas=start,yb=1e9; for(const c of all){if((c[0]===start.gx&&c[1]===start.gy)||(c[0]===goal.gx&&c[1]===goal.gy))continue; const d2=(c[0]-ccx)**2+(c[1]-ccy)**2; if(d2<yb){yb=d2;yas={gx:c[0],gy:c[1]};}}
   return {seed,W,H,cells,hideSpots:hide,fragments,start,goal,yasaki:yas,plaza,shrine,koyakkey,passages};
 }
 
@@ -264,13 +268,15 @@ function build(L){
     function post(ox,oz){box(1.4,17,1.4,X+ox,8.5,Z+oz,mTorii);}
     if(vert){post(-8.5,0);post(8.5,0);box(22,1.6,1.6,X,17,Z,mTorii);box(19,1.2,1.2,X,15,Z,mTorii);}
     else{post(0,-8.5);post(0,8.5);box(1.6,1.6,22,X,17,Z,mTorii);box(1.2,1.2,19,X,15,Z,mTorii);}
-    box(GRID-1,0.3,GRID-1,X,0.25,Z,mat(0x7a2a2a,{e:0x5a1a1a,ei:0.8}));}
+    box(GRID-1,0.3,GRID-1,X,0.25,Z,mat(0x7a2a2a,{e:0x5a1a1a,ei:0.8}));
+    const bm=new THREE.MeshStandardMaterial({color:0xff5f5f,emissive:0xff5f5f,emissiveIntensity:0.7,transparent:true,opacity:0.4});
+    const beacon=new THREE.Mesh(new THREE.BoxGeometry(2.2,80,2.2),bm); beacon.position.set(X,40,Z); town.add(beacon);}
   // 入口
   box(GRID*0.5,0.6,GRID*0.5,wx(L.start.gx),0.3,wz(L.start.gy),mat(0x4e8050,{e:0x2e6030,ei:0.7}));
   // 八尺様
   box(2.2,8.5,2.2,wx(L.yasaki.gx),4.25,wz(L.yasaki.gy),mat(C.yasaki,{r:0.7}));
   // お札
-  for(const f of L.fragments)box(1.6,2.6,0.22,wx(f.gx),4,wz(f.gy),mat(C.fuda,{e:0xb8a860,ei:0.6}));
+  for(const f of L.fragments){const rgb=CRGB[f.color]??C.fuda; box(1.6,2.6,0.22,wx(f.gx),4,wz(f.gy),mat(rgb,{e:rgb,ei:0.75}));}
 
   controls.target.set(0,0,0);
   if(!build._inited){const s=L.H*GRID; camera.position.set(s*0.42,s*0.72,s*0.85); build._inited=true;}
