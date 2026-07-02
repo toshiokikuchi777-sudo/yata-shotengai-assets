@@ -26,6 +26,8 @@
   #pwgate button{margin-top:12px;background:#c0453b;color:#fff;border:0;border-radius:8px;padding:9px 22px}
   button.enter{background:#1f2a22;color:#7fd0a0;border-color:#335a3f;font-weight:700}
   button.enter:hover{background:#27352b}
+  #role{background:#2a1f33;color:#c79be6;border-color:#4a3560;font-weight:700}
+  #role:hover{background:#352640}
   #walkui{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;display:none;flex-direction:column;gap:8px;align-items:center;background:#151319ee;backdrop-filter:blur(6px);border:1px solid #2a2630;border-radius:12px;padding:10px 16px;text-align:center;max-width:92vw}
   #walkui .wrow{font-size:13px;color:#cfc7b8}
   #walkui .wrow2{display:flex;gap:10px;align-items:center;justify-content:center}
@@ -75,8 +77,8 @@
 </div>
 <div class="hint" id="orbithint">drag:回転 ・ wheel:ズーム ・ 右drag:移動</div>
 <div id="walkui">
-  <div class="wrow"><b>歩行モード</b>　WASD／矢印＝移動　Shift＝スピードアップ🏃　マウス＝視点（画面クリックで視点ロック）</div>
-  <div class="wrow2"><span id="spdtag">walk</span><button id="vtoggle">👁 一人称（V）</button><button id="exit">出る（Esc）</button></div>
+  <div class="wrow"><b>歩行モード</b>　WASD／矢印＝移動　Shift＝スピードアップ🏃　マウス＝視点／高さ　V＝一人称⇔三人称　B＝役割チェンジ（画面クリックで視点ロック）</div>
+  <div class="wrow2"><span id="spdtag">walk</span><button id="role">😈 八尺様になる</button><button id="vtoggle">👁 一人称（V）</button><button id="exit">出る（Esc）</button></div>
 </div>
 
 <script type="importmap">
@@ -224,11 +226,17 @@ function loadShops(){
 }
 let town=new THREE.Group(); scene.add(town);
 // ───────── 歩行モード（Walking.fbx→walking.glb） ─────────
-let curL=null, mode='orbit', walkChar=null, mixer=null, walkAction=null, view='tps';
+let curL=null, mode='orbit', walkChar=null, mixer=null, walkAction=null, view='tps', role='human';
+const AVA={};  // role -> {obj,mixer,action,cfg}
 const clock=new THREE.Clock(), keys={}, camRay=new THREE.Raycaster();
 const player={x:0,z:0,yaw:0}, camRig={yaw:0,pitch:0.5,dist:16};
-const CHAR_RAW_H=1.882, CHAR_H=5.6, CHAR_SCALE=CHAR_H/CHAR_RAW_H, CHAR_R=1.8, CHAR_FWD=0;
-const WALK_SPD=22, RUN_SPD=42;
+const CHAR_R=1.8;
+let CHAR_H=5.6, CHAR_FWD=0, WALK_SPD=22, RUN_SPD=42, ANIM_TS=1.05, ANIM_TS_RUN=1.7;
+// 役割ごとの見た目・性能（八尺様＝高く・速く）
+const ROLES={
+  human:  {glb:'walking.glb?v=1',    raw:1.882, h:5.6, walk:22, run:42, fwd:0, ts:1.05, tsRun:1.7},
+  yasaki: {glb:'yasaki_play.glb?v=1', raw:1.873, h:9.4, walk:30, run:54, fwd:0, ts:1.15, tsRun:1.5},
+};
 const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??0.9,metalness:0,emissive:o.e??0x000000,emissiveIntensity:o.ei??1});
 function box(w,h,d,x,y,z,m){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); me.position.set(x,y,z); town.add(me); return me;}
 function sph(r,x,y,z,m){const me=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m); me.position.set(x,y,z); town.add(me); return me;}
@@ -363,16 +371,31 @@ seedEl.onchange=()=>regen(parseInt(seedEl.value||'0')||0);
 document.getElementById('top').onclick=topView;
 document.getElementById('persp').onclick=perspView;
 
-// ───────── 歩行モード本体 ─────────
-function loadWalker(){
-  return new Promise(res=>{ new GLTFLoader().load('walking.glb?v=1', g=>{
-    walkChar=g.scene; walkChar.scale.setScalar(CHAR_SCALE);
-    walkChar.traverse(o=>{ if(o.isMesh){o.frustumCulled=false; if(o.material){o.material.metalness=0; o.material.roughness=0.85;}} });
-    mixer=new THREE.AnimationMixer(walkChar);
-    if(g.animations&&g.animations.length){ walkAction=mixer.clipAction(g.animations[0]); walkAction.play(); walkAction.paused=true; }
-    walkChar.visible=false; scene.add(walkChar); res();
-  }, undefined, ()=>{ console.warn('walking.glb 読込失敗'); res(); }); });
+// ───────── 歩行モード本体（人間／八尺様の2アバター） ─────────
+function loadAvatar(r){
+  const cfg=ROLES[r];
+  return new Promise(res=>{ new GLTFLoader().load(cfg.glb, g=>{
+    const obj=g.scene; obj.scale.setScalar(cfg.h/cfg.raw);
+    obj.traverse(o=>{ if(o.isMesh){o.frustumCulled=false; if(o.material){o.material.metalness=0; o.material.roughness=0.85;}} });
+    const mx=new THREE.AnimationMixer(obj);
+    let ac=null; if(g.animations&&g.animations.length){ ac=mx.clipAction(g.animations[0]); ac.play(); ac.paused=true; }
+    obj.visible=false; scene.add(obj);
+    AVA[r]={obj, mixer:mx, action:ac, cfg};
+    res();
+  }, undefined, ()=>{ console.warn(cfg.glb+' 読込失敗'); res(); }); });
 }
+function loadAvatars(){ return Promise.all([loadAvatar('human'), loadAvatar('yasaki')]); }
+// 役割を適用（アクティブなアバターへ切替＝性能・見た目・アニメを差し替え）
+function applyRole(r){
+  role=r; const a=AVA[r]; if(!a)return;
+  for(const k in AVA){ if(AVA[k].obj)AVA[k].obj.visible=false; }
+  walkChar=a.obj; mixer=a.mixer; walkAction=a.action;
+  const c=a.cfg; CHAR_H=c.h; CHAR_FWD=c.fwd; WALK_SPD=c.walk; RUN_SPD=c.run; ANIM_TS=c.ts; ANIM_TS_RUN=c.tsRun;
+  walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=CHAR_FWD;
+  walkChar.visible=(mode==='walk'&&view==='tps');
+  const b=document.getElementById('role'); if(b)b.textContent=(role==='human')?'😈 八尺様になる':'🚶 人間にもどる';
+}
+function toggleRole(){ applyRole(role==='human'?'yasaki':'human'); }
 const cellW=(g,n)=>(g-(n-1)/2)*GRID;
 // 迷路の壁に当たる（セルベース：閉じた辺はクランプ、開いた辺は隣へ通す）
 function clampMaze(nx,nz){
@@ -388,11 +411,12 @@ function clampMaze(nx,nz){
   return [cx+lx, cz+lz];
 }
 function enterWalk(){
-  if(!curL||!walkChar){ alert('歩行キャラの読込中です'); return; }
+  if(!curL||!AVA[role]){ alert('キャラ読込中です'); return; }
   mode='walk';
   player.x=cellW(curL.start.gx,curL.W); player.z=cellW(curL.start.gy,curL.H); player.yaw=0;
-  walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=CHAR_FWD; walkChar.visible=true;
   view='tps'; document.getElementById('vtoggle').textContent='👁 一人称（V）';
+  applyRole(role);            // アクティブなアバター＝性能・見た目・ラベルをセット
+  if(walkChar)walkChar.visible=true;
   camRig.yaw=0; camRig.pitch=0.2;
   controls.enabled=false;
   document.getElementById('walkui').style.display='flex';
@@ -416,8 +440,10 @@ function toggleView(){ view=(view==='tps')?'fps':'tps';
 document.getElementById('enter').onclick=enterWalk;
 document.getElementById('exit').onclick=exitWalk;
 document.getElementById('vtoggle').onclick=toggleView;
+document.getElementById('role').onclick=toggleRole;
 addEventListener('keydown',e=>{ keys[e.code]=true; if(e.code==='Escape'&&mode==='walk')exitWalk();
   if(e.code==='KeyV'&&mode==='walk')toggleView();
+  if(e.code==='KeyB'&&mode==='walk')toggleRole();
   if(mode==='walk'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('mousemove',e=>{ if(mode==='walk'&&document.pointerLockElement){
@@ -439,7 +465,7 @@ function updateWalk(dt){
     while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; player.yaw+=d*0.2;
   }
   walkChar.position.set(player.x,0,player.z); walkChar.rotation.y=player.yaw;
-  if(walkAction){ walkAction.paused=!moving; walkAction.timeScale=run?1.7:1.05; }
+  if(walkAction){ walkAction.paused=!moving; walkAction.timeScale=run?ANIM_TS_RUN:ANIM_TS; }
   if(mixer)mixer.update(dt);
   const tag=document.getElementById('spdtag'); if(tag){ tag.textContent=run?'run 🏃':'walk'; tag.className=run?'run':''; }
   if(walkChar)walkChar.visible=(view==='tps');  // 一人称は自分の体を隠す
@@ -466,7 +492,7 @@ function updateWalk(dt){
 }
 
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
-Promise.all([loadShops(), loadWalker()]).then(()=>regen(7));
+Promise.all([loadShops(), loadAvatars()]).then(()=>regen(7));
 (function loop(){requestAnimationFrame(loop);
   const dt=Math.min(clock.getDelta(),0.05);
   if(mode==='walk')updateWalk(dt); else { controls.update(); if(mixer)mixer.update(0); }
